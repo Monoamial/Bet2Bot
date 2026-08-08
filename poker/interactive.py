@@ -20,13 +20,18 @@ OPP = 1
 
 
 class InteractiveMatch:
-    def __init__(self, opponent, config: Optional[GameConfig] = None, seed: Optional[int] = None):
+    def __init__(self, opponent, config: Optional[GameConfig] = None, seed: Optional[int] = None,
+                 fixed_button: Optional[int] = None):
+        """`fixed_button` pins the dealer button to one seat for every hand (used by
+        Academy position drills: button==human -> always in position postflop, and
+        vice versa). Default None keeps the normal per-hand rotation."""
         import random
         self.opponent = opponent
         self.opp_act = resolve_act(opponent)
         self.config = config or GameConfig()
         self.rng = random.Random(seed)
-        self.button = 0
+        self.fixed_button = fixed_button
+        self.button = fixed_button if fixed_button is not None else 0
         self.net = [0, 0]
         self.hands_played = 0
         self._gen = None
@@ -70,7 +75,8 @@ class InteractiveMatch:
             "handNet": result.net[HUMAN],
             "youWon": HUMAN in result.winners,
         }
-        self.button = (self.button + 1) % 2  # rotate for the next hand
+        if self.fixed_button is None:
+            self.button = (self.button + 1) % 2  # rotate for the next hand
 
     # --- public API (returns JSON-able payloads) ---
     def start_hand(self) -> dict:

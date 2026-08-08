@@ -41,6 +41,12 @@ watcher in `game/vite.config.ts`). Outside dev, run `npm run bundle-engine`.
 
 Opponents live in `poker/bots/` and are registered in `game_api.OPPONENTS`.
 
+The **Academy** (Learn tab) is data-driven from `game/src/academy/lessons.ts`: MODULES of
+lessons (read / quiz / hand / **scenario drill** / live play / bridge), rendered by
+`Academy.tsx` with per-module progress in localStorage. Scenario drills
+(`ScenarioDrill.tsx`) serve one-attempt decision spots with a score. Play lessons can pin
+the dealer button (`InteractiveMatch(fixed_button=...)`) for in/out-of-position drills.
+
 ## Conventions
 - **Teaching project** → favor readable, well-commented code over cleverness.
 - Keep the engine **pure Python / dependency-light** so it keeps running in Pyodide

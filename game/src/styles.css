@@ -461,3 +461,45 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 .chip-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .chip.good .chip-value { color: var(--accent); }
 .chip.bad .chip-value { color: var(--danger); }
+
+/* --- Academy: module map (A1) ------------------------------------------------ */
+.module-map { width: 100%; max-width: 760px; }
+.module-map-head { margin-bottom: 14px; }
+.module-map-head h2 { margin: 0 0 4px; font-size: 20px; }
+.module-map-sub { color: var(--muted); font-size: 13px; }
+.module-grid { display: flex; flex-direction: column; gap: 10px; }
+.module-card {
+  display: flex; gap: 14px; align-items: center; text-align: left; width: 100%;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; cursor: pointer; color: var(--text); font: inherit;
+}
+.module-card:hover { border-color: var(--accent-dim); background: var(--panel-2); }
+.module-card.complete { border-color: rgba(74, 222, 128, 0.45); }
+.module-icon { font-size: 28px; width: 44px; text-align: center; flex-shrink: 0; }
+.module-meta { flex: 1; min-width: 0; }
+.module-title { font-weight: 700; }
+.module-num { color: var(--muted); font-weight: 600; }
+.module-check { color: var(--accent); }
+.module-blurb { color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
+.module-bar { height: 5px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--border); overflow: hidden; }
+.module-bar-fill { height: 100%; background: var(--accent-dim); border-radius: 3px; transition: width 300ms ease; }
+.module-status { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+.academy-topline { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 640px; margin-bottom: 10px; }
+.academy-module-name { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.academy-topline .academy-progress { margin: 0; flex: 1; justify-content: flex-end; }
+
+/* --- Academy: scenario drills (A3) -------------------------------------------- */
+.drill-tag {
+  display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 999px;
+  background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.4);
+  color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+}
+.drill-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+.drill-progress { color: var(--muted); font-weight: 600; }
+.drill-running { color: var(--accent); font-weight: 600; }
+.drill-next { margin-top: 12px; display: flex; justify-content: flex-end; }
+.drill-summary { text-align: center; padding: 12px 0; }
+.drill-score { font-size: 40px; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+.drill-summary-actions { margin-top: 10px; display: flex; justify-content: center; gap: 10px; }
+.mini-preflop { color: #bfe9d0; font-size: 13px; }

@@ -23,14 +23,10 @@ you apply it live. This is the current top priority.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| A1 | Curriculum structure: group lessons into **modules/units** with a lesson-select map | P0 | M |
-| A2 | Write real strategy lessons (position, aggression, value vs bluff, pot odds/equity, hand reading, board texture, bankroll) as a content pipeline | P0 | L |
-| A3 | **Interactive "apply-it" scenario type**: served decision spots parameterized by a concept (same hand, different context → different correct action) | P0 | L |
-| A4 | **Position module** (worked example of A3): scenarios across positions where the right choice depends on position, then play a few hands at the two extremes (IP vs OOP) to feel it | P0 | M |
-| A5 | **Drills**: repeatable, randomized single-concept practice with scoring / streaks / mastery | P1 | L |
-| A6 | Per-lesson & per-module progress + mastery (stars, completion) | P1 | M |
-| A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder | P1 | M |
-| A8 | Persist Academy progress (resume where you left off) | P1 | S |
+| A2 | More lesson content: pot odds/equity, hand reading, board texture, bankroll — as modules in `academy/lessons.ts` (position, value betting, and discipline vs aggression are done) | P1 | M |
+| A5 | **Drills**: repeatable, randomized single-concept practice with scoring / streaks / mastery (the scenario drill is fixed-sequence; randomize/generate spots) | P1 | L |
+| A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
+| A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
 Goal: a rich campaign that slowly teaches you to build a more effective bot, and *feels*
@@ -95,9 +91,8 @@ Goal: grow beyond heads-up Limit.
 ---
 
 ## Board
-- **Now:** A1 curriculum structure · A2 lesson content · A3 apply-it scenarios · A4 position
-  module.
-- **Next:** A5 drills · B1 creative roster · B2 gated builder · D1 fixed-stack rolls ·
-  D2 objective framework · F2 coaching · H1 shared table component.
+- **Now:** A2 remaining lesson content · A5 randomized drills.
+- **Next:** B1 creative roster · B2 gated builder · D1 fixed-stack rolls ·
+  D2 objective framework · F2 coaching · H1 shared table component · A7 builder bridges.
 - **Later:** E1/E2 formats & multiway · G mixed frequencies / draws / board texture ·
   H2 deploy · PVP ladder.

@@ -140,11 +140,12 @@ function LiveTableBody({
 }
 
 export function LivePlay({
-  bridgeRef, ready, fixedOpponent, autoStart, embedded, onHandDone,
+  bridgeRef, ready, fixedOpponent, fixedButton, autoStart, embedded, onHandDone,
 }: {
   bridgeRef: MutableRefObject<EngineBridge | null>;
   ready: boolean;
   fixedOpponent?: string;
+  fixedButton?: 0 | 1; // pin the dealer button (0 = you: in position postflop)
   autoStart?: boolean;
   embedded?: boolean;
   onHandDone?: (handNet: number) => void;
@@ -181,7 +182,7 @@ export function LivePlay({
     finally { setBusy(false); }
   }
 
-  const newMatch = () => { setStarted(true); guard(() => bridgeRef.current!.humanNew(opponent), true); };
+  const newMatch = () => { setStarted(true); guard(() => bridgeRef.current!.humanNew(opponent, undefined, fixedButton), true); };
   const deal = () => guard(() => bridgeRef.current!.humanDeal(), true);
   const act = (a: Action) => guard(() => bridgeRef.current!.humanAct(a), false);
 

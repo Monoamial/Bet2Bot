@@ -68,8 +68,11 @@ export class EngineBridge {
   runLevel(req: RunRequest): Promise<LevelResult> {
     return this.call<LevelResult>("run", req);
   }
-  humanNew(opponent: string, seed?: number): Promise<any> {
-    return this.call("human_new", { opponent, seed: seed ?? null });
+  /** fixedButton pins the dealer button (0 = you, 1 = opponent) every hand. */
+  humanNew(opponent: string, seed?: number, fixedButton?: 0 | 1): Promise<any> {
+    return this.call("human_new", {
+      opponent, seed: seed ?? null, fixed_button: fixedButton ?? null,
+    });
   }
   humanDeal(): Promise<any> {
     return this.call("human_deal", {});

@@ -37,8 +37,8 @@ class _Api:
         s = json.loads(strategy_json)
         return json.dumps(run_level(opponent=opponent, strategy=s,
                                     hands=hands, seed=seed, capture=capture))
-    def human_new(self, opponent, seed):
-        return json.dumps(human_new(opponent, seed=seed))
+    def human_new(self, opponent, seed, fixed_button):
+        return json.dumps(human_new(opponent, seed=seed, fixed_button=fixed_button))
     def human_deal(self):
         return json.dumps(human_deal())
     def human_act(self, action):
@@ -66,7 +66,7 @@ function dispatch(cmd: string, p: any): string {
     case "run":
       return api.run(JSON.stringify(p.strategy), p.opponent, p.hands, p.seed ?? null, p.capture);
     case "human_new":
-      return api.human_new(p.opponent, p.seed ?? null);
+      return api.human_new(p.opponent, p.seed ?? null, p.fixed_button ?? null);
     case "human_deal":
       return api.human_deal();
     case "human_act":

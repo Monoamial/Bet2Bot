@@ -105,13 +105,19 @@ _match: Optional[InteractiveMatch] = None
 
 
 def human_new(opponent: str, seed: Optional[int] = None,
-              config: Optional[dict] = None) -> dict:
-    """Start a fresh live match vs a named opponent and deal the first hand."""
+              config: Optional[dict] = None,
+              fixed_button: Optional[int] = None) -> dict:
+    """Start a fresh live match vs a named opponent and deal the first hand.
+
+    `fixed_button` (0 = human, 1 = opponent) pins the button for every hand —
+    the Academy's in-position / out-of-position drills; None rotates normally.
+    """
     global _match
     if opponent not in OPPONENTS:
         return {"error": f"Unknown opponent: {opponent!r}"}
     cfg = GameConfig(**config) if config else GameConfig()
-    _match = InteractiveMatch(OPPONENTS[opponent](), config=cfg, seed=seed)
+    _match = InteractiveMatch(OPPONENTS[opponent](), config=cfg, seed=seed,
+                              fixed_button=fixed_button)
     return _match.start_hand()
 
 
