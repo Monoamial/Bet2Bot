@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { PokerEvent } from "../engine-api/types";
+import type { CuratedReplay, PokerEvent } from "../engine-api/types";
 import { CardBack, CardView } from "./Card";
 import { TableFelt } from "../assets/TableFelt";
 import { Avatar } from "../assets/Avatar";
@@ -110,10 +110,19 @@ function Seat({
   );
 }
 
+// "▲ Biggest win · hand #412 (+34)" — ranked within its kind (wins first).
+function replayLabel(r: CuratedReplay, rank: number): string {
+  const kind = r.kind === "win"
+    ? (rank === 0 ? "▲ Biggest win" : `▲ Big win ${rank + 1}`)
+    : (rank === 0 ? "▼ Biggest loss" : `▼ Big loss ${rank + 1}`);
+  const net = r.net > 0 ? `+${r.net}` : `${r.net}`;
+  return `${kind} · hand #${r.hand + 1} (${net})`;
+}
+
 export function PokerTable({
   replays, playerName, opponentName, playerIndex, opponentKind,
 }: {
-  replays: PokerEvent[][];
+  replays: CuratedReplay[];
   playerName: string;
   opponentName: string;
   playerIndex: number;
@@ -123,11 +132,13 @@ export function PokerTable({
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(true);
 
-  const events = replays[handIndex] ?? [];
+  const safeIndex = Math.min(handIndex, Math.max(0, replays.length - 1));
+  const events = replays[safeIndex]?.events ?? [];
   const maxStep = Math.max(0, events.length - 1);
 
   // Reset to the start whenever a new set of replays or hand is selected.
   useEffect(() => { setStep(0); setPlaying(true); }, [handIndex, replays]);
+  useEffect(() => { setHandIndex(0); }, [replays]);
 
   useEffect(() => {
     if (!playing) return;
@@ -159,7 +170,7 @@ export function PokerTable({
 
   return (
     <div className="panel table-panel">
-      <h2>Table — replay</h2>
+      <h2>Table — your biggest hands</h2>
       <div className="body">
         <div className="felt">
           <TableFelt />
@@ -179,8 +190,15 @@ export function PokerTable({
 
         <div className="replay-controls">
           <label style={{ color: "var(--muted)" }}>Hand</label>
-          <select value={handIndex} onChange={(e) => setHandIndex(Number(e.target.value))}>
-            {replays.map((_, i) => <option key={i} value={i}>#{i + 1}</option>)}
+          <select value={safeIndex} onChange={(e) => setHandIndex(Number(e.target.value))}>
+            {(() => {
+              let winRank = 0, lossRank = 0;
+              return replays.map((r, i) => (
+                <option key={i} value={i}>
+                  {replayLabel(r, r.kind === "win" ? winRank++ : lossRank++)}
+                </option>
+              ));
+            })()}
           </select>
           <button onClick={() => setPlaying((p) => !p)}>
             {playing ? "❚❚ Pause" : "▶ Play"}

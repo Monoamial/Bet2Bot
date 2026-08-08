@@ -49,9 +49,6 @@ Goal: match results show more than one number.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| C1 | **Curated sample runouts**: auto-select and replay the hands where you won/lost the most (not just the first N) | P0 | M |
-| C2 | **Animated winnings-over-time graph** (bankroll curve) in the results panel | P0 | M |
-| C3 | Richer results: several metrics side-by-side (net, win rate, biggest pot, showdown %, aggression, illegal) | P1 | S |
 | C4 | Leak breakdown: where chips came from / were lost (by street / hand tier) | P2 | M |
 
 ## D — Metrics rework
@@ -99,7 +96,7 @@ Goal: grow beyond heads-up Limit.
 
 ## Board
 - **Now:** A1 curriculum structure · A2 lesson content · A3 apply-it scenarios · A4 position
-  module · C1 curated runouts · C2 winnings graph.
+  module.
 - **Next:** A5 drills · B1 creative roster · B2 gated builder · D1 fixed-stack rolls ·
   D2 objective framework · F2 coaching · H1 shared table component.
 - **Later:** E1/E2 formats & multiway · G mixed frequencies / draws / board texture ·

@@ -18,6 +18,9 @@ class BotStats:
     showdowns: int = 0                 # hands seen to showdown
     showdowns_won: int = 0
     illegal: int = 0                   # sanitized / invalid actions returned
+    hands_won: int = 0                 # hands that ended net-positive
+    biggest_win: int = 0               # largest single-hand net gain
+    biggest_loss: int = 0              # largest single-hand net loss (<= 0)
     bankroll: List[int] = field(default_factory=list)  # cumulative net per hand
 
     @property
@@ -27,6 +30,14 @@ class BotStats:
     @property
     def pfr_pct(self) -> float:
         return 100.0 * self.pfr / self.hands if self.hands else 0.0
+
+    @property
+    def win_pct(self) -> float:
+        return 100.0 * self.hands_won / self.hands if self.hands else 0.0
+
+    @property
+    def showdown_pct(self) -> float:
+        return 100.0 * self.showdowns / self.hands if self.hands else 0.0
 
     @property
     def aggression_factor(self) -> float:
@@ -46,12 +57,20 @@ class Stats:
         self.seats: List[BotStats] = [BotStats(name=nm) for nm in names]
         # Optional recorded hands (each a list of event dicts) for replay/animation.
         self.replays: List[List[dict]] = []
+        # Curated replays (see run_match(curate=...)): the seat-0 player's biggest
+        # wins and losses, each {"kind", "hand", "net", "events"}.
+        self.curated: List[dict] = []
 
     def record(self, result: HandResult) -> None:
         for seat, bs in enumerate(self.seats):
+            hand_net = result.net[seat]
             bs.hands += 1
-            bs.net += result.net[seat]
+            bs.net += hand_net
             bs.bankroll.append(bs.net)
+            if hand_net > 0:
+                bs.hands_won += 1
+            bs.biggest_win = max(bs.biggest_win, hand_net)
+            bs.biggest_loss = min(bs.biggest_loss, hand_net)
             if seat in result.vpip_seats:
                 bs.vpip += 1
             if seat in result.pfr_seats:

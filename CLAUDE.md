@@ -34,6 +34,10 @@ watcher in `game/vite.config.ts`). Outside dev, run `npm run bundle-engine`.
    - `InteractiveMatch` (`poker/interactive.py`) — human in one seat (Play / Academy).
 5. `play_hand_gen` emits a JSON-able **event stream** (blinds/hole/action/board/showdown/
    award) used for animated replays (Campaign) and live rendering (Play).
+6. Campaign results are multi-output: `run_match(curate=K)` keeps the player's K biggest
+   wins/losses as **curated replays** (bounded-memory top-K heaps), and `run_level`
+   returns the bankroll **timeline** that `WinningsGraph.tsx` animates, plus richer
+   per-bot stats (win %, showdown %, biggest win/loss).
 
 Opponents live in `poker/bots/` and are registered in `game_api.OPPONENTS`.
 

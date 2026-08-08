@@ -17,8 +17,20 @@ export interface BotSummaryRow {
   vpip: number;
   pfr: number;
   af: number | null;
+  win_pct: number;
+  showdown_pct: number;
+  biggest_win: number;
+  biggest_loss: number;
   showdowns_won: number;
   illegal: number;
+}
+
+// A curated replay: one of the player's biggest wins or losses in the run.
+export interface CuratedReplay {
+  kind: "win" | "loss";
+  hand: number; // 0-based hand index within the run
+  net: number;  // player's net chips for that hand
+  events: PokerEvent[];
 }
 
 export interface LevelResult {
@@ -27,7 +39,9 @@ export interface LevelResult {
   player_index: number;
   opponent_index: number;
   summary: BotSummaryRow[];
-  replays: PokerEvent[][];
+  replays: CuratedReplay[];
+  timeline: number[]; // player's cumulative net (chips) after each hand
+  big_blind: number;
   player_net: number;
   player_bb100: number;
   hands: number;

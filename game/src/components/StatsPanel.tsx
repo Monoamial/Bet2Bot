@@ -1,5 +1,15 @@
 import type { LevelResult } from "../engine-api/types";
 import type { Level } from "../campaign/levels";
+import { WinningsGraph } from "./WinningsGraph";
+
+function Chip({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
+  return (
+    <div className={`chip${tone ? ` ${tone}` : ""}`}>
+      <div className="chip-value">{value}</div>
+      <div className="chip-label">{label}</div>
+    </div>
+  );
+}
 
 export function StatsPanel({
   result, level, onNext, nextLabel,
@@ -27,6 +37,18 @@ export function StatsPanel({
           {won && onNext && (
             <button className="run" onClick={onNext}>▶ {nextLabel}</button>
           )}
+        </div>
+
+        <WinningsGraph timeline={result.timeline} bigBlind={result.big_blind} />
+
+        <div className="chips-row">
+          <Chip label="net chips" value={`${you.net >= 0 ? "+" : ""}${you.net}`}
+            tone={you.net >= 0 ? "good" : "bad"} />
+          <Chip label="hands won" value={`${you.win_pct.toFixed(0)}%`} />
+          <Chip label="biggest pot won" value={`+${you.biggest_win}`} tone="good" />
+          <Chip label="worst hand" value={`${you.biggest_loss}`} tone="bad" />
+          <Chip label="went to showdown" value={`${you.showdown_pct.toFixed(0)}%`} />
+          <Chip label="aggression" value={you.af === null ? "∞" : you.af.toFixed(1)} />
         </div>
 
         <table className="stats">

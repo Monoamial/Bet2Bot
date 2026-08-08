@@ -49,6 +49,10 @@ def _row(bs, big_blind: int) -> dict:
         "vpip": bs.vpip_pct,
         "pfr": bs.pfr_pct,
         "af": None if af == float("inf") else af,
+        "win_pct": bs.win_pct,
+        "showdown_pct": bs.showdown_pct,
+        "biggest_win": bs.biggest_win,
+        "biggest_loss": bs.biggest_loss,
         "showdowns_won": bs.showdowns_won,
         "illegal": bs.illegal,
     }
@@ -67,6 +71,10 @@ def run_level(
 
     `seed=None` (the default) deals a fresh, fully random set of hands each run.
     Returns a JSON-able dict; on an unknown opponent, returns {"error": <message>}.
+
+    `capture` is the total number of *curated* replays to return: the player's
+    `capture // 2` biggest wins and biggest losses (see run_match). `timeline` is
+    the player's cumulative net (chips) after each hand, for the winnings graph.
     """
     if opponent not in OPPONENTS:
         return {"error": f"Unknown opponent: {opponent!r}"}
@@ -74,7 +82,7 @@ def run_level(
     cfg = GameConfig(**config) if config else GameConfig()
     bots = {player_name: StrategyBot(strategy), opponent: OPPONENTS[opponent]()}
     stats = run_match(bots, hands=hands, config=cfg, seed=seed,
-                      capture_events=capture)
+                      curate=capture // 2)
 
     player = stats.seats[0]          # player was inserted first, so seat 0
     return {
@@ -83,7 +91,9 @@ def run_level(
         "player_index": 0,
         "opponent_index": 1,
         "summary": [_row(b, cfg.big_blind) for b in stats.seats],
-        "replays": stats.replays,
+        "replays": stats.curated,
+        "timeline": player.bankroll,
+        "big_blind": cfg.big_blind,
         "player_net": player.net,
         "player_bb100": player.bb_per_100(cfg.big_blind),
         "hands": hands,
