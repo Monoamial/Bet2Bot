@@ -23,10 +23,12 @@ you apply it live. This is the current top priority.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| A2 | More lesson content: pot odds/equity, hand reading, board texture, bankroll — as modules in `academy/lessons.ts` (position, value betting, and discipline vs aggression are done) | P1 | M |
-| A5 | **Drills**: repeatable, randomized single-concept practice with scoring / streaks / mastery (the scenario drill is fixed-sequence; randomize/generate spots) | P1 | L |
+| A2 | Individual content passes on the 5 existing modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: pot odds/equity, hand reading, board texture, bankroll | P1 | L |
+| A5 | **Randomized drills within lessons**: concept drills deal different cards each attempt (generate/parameterize spots instead of the current fixed sequence) so repeating a drill actually teaches | P0 | L |
 | A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
 | A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
+| A9 | **Puzzles section** (chess.com-style): a standalone tab serving randomized standalone decision spots across all learned concepts — rated/streaked, independent of any lesson | P0 | L |
+| A10 | Once variable betting (E1) lands in the engine, rework lessons/drills to teach sizing (value sizing, bluff sizing, pot odds vs price) | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
 Goal: a rich campaign that slowly teaches you to build a more effective bot, and *feels*
@@ -61,14 +63,15 @@ Goal: grow beyond heads-up Limit.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| E1 | **Open betting formats** — No-Limit / Pot-Limit: bet sizing in the action API, engine, and builder | P2 | L |
+| E1 | **Variable betting** (beyond the single fixed raise): bet-sizing in the action API, engine, interactive play, and builder — a core game element; No-Limit / Pot-Limit formats build on it (lessons follow via A10) | P1 | L |
 | E2 | **Multiway tables** (e.g. 6-max): side pots, multi-opponent position dynamics | P2 | L |
 | E3 | Surface table config (blinds, stacks, players, format) in the UI | P2 | S |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| F1 | Step-through animation pacing for opponent actions in live play | P2 | M |
+| F1 | **Announce what's happening** in manual play: actions called out explicitly (not just bubble text), the runout dealt step by step (flop/turn/river land one at a time, not a silent board swap), and clear street transitions — the table should narrate the hand for a learner | P0 | M |
+| F4 | **Showdown teaching moment**: highlight the winning hand over the losing one (the five cards that play, named categories side by side) to reinforce hand ordering every showdown | P0 | M |
 | F2 | Post-hand coaching/diagnosis ("you paid off X% of rivers with one pair") | P1 | M |
 | F3 | "Play vs any bot" sandbox polish (choose format/stack/opponent) | P2 | S |
 
@@ -83,7 +86,6 @@ Goal: grow beyond heads-up Limit.
 | ID | Task | Pri | Size |
 |----|------|-----|------|
 | H1 | Extract a shared table component (PokerTable replay ↔ LivePlay dupe: Seat/reducer/felt) | P1 | M |
-| H2 | Deploy as a static site (shareable link) | P1 | S |
 | H3 | Self-host Pyodide (drop the CDN dependency; CSP-friendly) | P2 | S |
 | H4 | Lint/format config (eslint + prettier) for the web app | P2 | S |
 | H5 | Keep objective gates meaningful under full randomization (ties to D2/D3) | P1 | S |
@@ -91,8 +93,9 @@ Goal: grow beyond heads-up Limit.
 ---
 
 ## Board
-- **Now:** A2 remaining lesson content · A5 randomized drills.
-- **Next:** B1 creative roster · B2 gated builder · D1 fixed-stack rolls ·
-  D2 objective framework · F2 coaching · H1 shared table component · A7 builder bridges.
-- **Later:** E1/E2 formats & multiway · G mixed frequencies / draws / board texture ·
-  H2 deploy · PVP ladder.
+- **Now:** A5 randomized drills · A9 puzzles · F1 action announcements / step-by-step
+  runout · F4 showdown highlighting.
+- **Next:** E1 variable betting (then A10 sizing lessons) · A2 module content passes ·
+  B1 creative roster · B2 gated builder · D1 fixed-stack rolls · D2 objective framework ·
+  F2 coaching · H1 shared table component · A7 builder bridges.
+- **Later:** E2 multiway · G mixed frequencies / draws / board texture · PVP ladder.
