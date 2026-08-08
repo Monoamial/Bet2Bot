@@ -28,7 +28,7 @@ you apply it live. This is the current top priority.
 | A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
 | A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
 | A9 | **Puzzles section** (chess.com-style): a standalone tab serving randomized standalone decision spots across all learned concepts — rated/streaked, independent of any lesson | P0 | L |
-| A10 | Once variable betting (E1) lands in the engine, rework lessons/drills to teach sizing (value sizing, bluff sizing, pot odds vs price) | P1 | M |
+| A10 | Now that variable betting is in the engine (NL game modes), rework lessons/drills to teach sizing (value sizing, bluff sizing, pot odds vs price) — pairs with E5 builder blocks | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
 Goal: a rich campaign that slowly teaches you to build a more effective bot, and *feels*
@@ -50,22 +50,24 @@ Goal: match results show more than one number.
 | C4 | Leak breakdown: where chips came from / were lost (by street / hand tier) | P2 | M |
 
 ## D — Metrics rework
-Goal: evolve past bb/100 as *the* measure.
+Goal: evolve past bb/100 as *the* measure. (The engine primitive exists: `run_session`
+fixed-stack rolls power the Survival mode; what remains is campaign integration.)
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| D1 | **Fixed-stack rolls**: start a stack, bust/survive over a session — a more visceral, game-like outcome | P1 | L |
-| D2 | Objective framework: data-driven named objectives (bankroll / EV / constraints / stars) that levels & drills compose from | P1 | L |
+| D2 | Objective framework: data-driven named objectives (bankroll / EV / constraints / stars) that levels & drills compose from — survival objectives ("last 200 hands on one stack") via `run_session` | P1 | L |
 | D3 | Auto-calibrate objective thresholds from a playtest harness (robust under randomization) | P2 | M |
 
 ## E — Formats & table expansion
-Goal: grow beyond heads-up Limit.
+Goal: grow beyond heads-up Limit. (Engine + game modes shipped: No-Limit with sized
+raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the default.)
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| E1 | **Variable betting** (beyond the single fixed raise): bet-sizing in the action API, engine, interactive play, and builder — a core game element; No-Limit / Pot-Limit formats build on it (lessons follow via A10) | P1 | L |
-| E2 | **Multiway tables** (e.g. 6-max): side pots, multi-opponent position dynamics | P2 | L |
-| E3 | Surface table config (blinds, stacks, players, format) in the UI | P2 | S |
+| E3 | Surface table config (blinds, stacks, players, format) in the game-mode UI (custom mode) | P2 | S |
+| E4 | **Pot-Limit** format (raise window capped at pot — the engine's default raise is already pot-sized) | P2 | S |
+| E5 | Builder support for sized raises in No-Limit (small/pot/overbet blocks) so bots can play NL modes deliberately — pairs with A10 sizing lessons | P1 | M |
+| E6 | Multiway position conditions in the builder (early/middle/late, not just IP/OOP) | P2 | M |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
@@ -95,7 +97,8 @@ Goal: grow beyond heads-up Limit.
 ## Board
 - **Now:** A5 randomized drills · A9 puzzles · F1 action announcements / step-by-step
   runout · F4 showdown highlighting.
-- **Next:** E1 variable betting (then A10 sizing lessons) · A2 module content passes ·
-  B1 creative roster · B2 gated builder · D1 fixed-stack rolls · D2 objective framework ·
+- **Next:** A10 sizing lessons + E5 NL builder blocks · A2 module content passes ·
+  B1 creative roster · B2 gated builder · D2 objective framework (survival objectives) ·
   F2 coaching · H1 shared table component · A7 builder bridges.
-- **Later:** E2 multiway · G mixed frequencies / draws / board texture · PVP ladder.
+- **Later:** E3 custom tables · E4 Pot-Limit · E6 multiway builder conditions ·
+  G mixed frequencies / draws / board texture · PVP ladder.

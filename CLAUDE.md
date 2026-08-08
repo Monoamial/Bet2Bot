@@ -41,6 +41,20 @@ watcher in `game/vite.config.ts`). Outside dev, run `npm run bundle-engine`.
 
 Opponents live in `poker/bots/` and are registered in `game_api.OPPONENTS`.
 
+**Formats, stacks & game modes.** The engine plays **Limit or No-Limit**
+(`GameConfig.betting`) with optional **stacks** (`GameConfig.stack`, or per-seat
+`stacks=` on `play_hand(_gen)`) — all-ins, short calls, and layered **side pots** are
+handled; with no stack configured, play is the classic unlimited teaching game and
+behaves exactly as before. NL raises carry an amount ("raise TO X chips this street":
+`"raise:12"` or `("raise", 12)`; a bare `"raise"` is a pot-sized raise), clamped to
+`[min_raise_to, max_raise_to]` on the GameState. `run_session` (`poker/match.py`) is the
+fixed-stack roll: seat 0 carries one stack until bust or the hand cap; opponents refill.
+`InteractiveMatch` takes a *list* of opponents (multiway), `stack=`, and `carry=`
+(survival). The Play tab (`GameModes.tsx`) exposes these as **game modes** — Classic
+Limit (default, introductory), No-Limit heads-up (bet slider in `LivePlay.tsx`),
+Survival, and a 6-max Limit table. One documented simplification: ANY raise reopens
+action (no special under-raise all-in rule).
+
 The **Academy** (Learn tab) is data-driven from `game/src/academy/lessons.ts`: MODULES of
 lessons (read / quiz / hand / **scenario drill** / live play / bridge), rendered by
 `Academy.tsx` with per-module progress in localStorage. Scenario drills
@@ -53,7 +67,7 @@ the dealer button (`InteractiveMatch(fixed_button=...)`) for in/out-of-position 
   (matplotlib is only used by the offline `poker/plotting.py`).
 - **All engine changes must keep `pytest` green**; the generator refactor is covered by
   parity tests — don't diverge batch vs interactive behavior.
-- Limit Hold'em, heads-up-focused; intentional simplifications: **no all-in / side pots**
-  (see `poker/engine.py` header).
+- The Campaign stays **Limit heads-up** (the four-action introductory game); formats,
+  stacks, and multiway live behind **game modes** and engine config, not level defaults.
 - Pot-odds is a weak lever in Limit (a single bet is almost always a cheap call) — it's
   supported in the interpreter but de-emphasized in the campaign unlocks.

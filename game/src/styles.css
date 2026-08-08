@@ -503,3 +503,42 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 .drill-score { font-size: 40px; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
 .drill-summary-actions { margin-top: 10px; display: flex; justify-content: center; gap: 10px; }
 .mini-preflop { color: #bfe9d0; font-size: 13px; }
+
+/* --- Game modes (D1/E1/E2) ----------------------------------------------------- */
+.mode-tag {
+  margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+  font-weight: 600; background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.35); color: var(--accent);
+  vertical-align: 2px;
+}
+.mode-play { width: 100%; }
+.mode-intro { flex: 1; color: var(--muted); font-size: 12.5px; text-align: right; }
+
+/* Multiway felt: opponents in a row across the top */
+.opp-row { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.felt.multiway .felt-content { gap: 6px; }
+.seat.compact .hand .card { transform: scale(0.85); transform-origin: top center; }
+.seat.compact .bubble { font-size: 11px; padding: 2px 8px; }
+.seat.compact .name { font-size: 12px; }
+
+/* Stacks */
+.stack-chip {
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.stack-chip.allin { color: var(--danger); font-weight: 700; }
+
+/* No-Limit bet controls */
+.bet-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 10px;
+}
+.bet-presets { display: flex; gap: 4px; }
+.bet-preset {
+  font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 999px;
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer;
+}
+.bet-preset:hover { border-color: var(--accent-dim); color: var(--text); }
+.bet-preset.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.bet-slider { width: 130px; accent-color: var(--accent); }

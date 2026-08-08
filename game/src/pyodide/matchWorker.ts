@@ -30,15 +30,26 @@ async function loadEngine() {
   pyodide.runPython(`import sys; sys.path.insert(0, "${root}")`);
   api = pyodide.runPython(`
 import json
-from poker.game_api import run_level, human_new, human_deal, human_act
+from poker.game_api import run_level, run_session, human_new, human_deal, human_act
 
 class _Api:
-    def run(self, strategy_json, opponent, hands, seed, capture):
-        s = json.loads(strategy_json)
-        return json.dumps(run_level(opponent=opponent, strategy=s,
-                                    hands=hands, seed=seed, capture=capture))
-    def human_new(self, opponent, seed, fixed_button):
-        return json.dumps(human_new(opponent, seed=seed, fixed_button=fixed_button))
+    def run(self, req_json):
+        r = json.loads(req_json)
+        return json.dumps(run_level(
+            opponent=r["opponent"], strategy=r["strategy"], hands=r["hands"],
+            seed=r.get("seed"), capture=r.get("capture", 6), config=r.get("config")))
+    def run_session(self, req_json):
+        r = json.loads(req_json)
+        return json.dumps(run_session(
+            opponent=r["opponent"], strategy=r["strategy"], stack=r["stack"],
+            max_hands=r.get("maxHands", 500), seed=r.get("seed"),
+            capture=r.get("capture", 6), config=r.get("config")))
+    def human_new(self, req_json):
+        r = json.loads(req_json)
+        return json.dumps(human_new(
+            r["opponents"], seed=r.get("seed"), config=r.get("config"),
+            fixed_button=r.get("fixedButton"), stack=r.get("stack"),
+            carry=r.get("carry", False)))
     def human_deal(self):
         return json.dumps(human_deal())
     def human_act(self, action):
@@ -64,9 +75,11 @@ const ready = init().catch((e) => {
 function dispatch(cmd: string, p: any): string {
   switch (cmd) {
     case "run":
-      return api.run(JSON.stringify(p.strategy), p.opponent, p.hands, p.seed ?? null, p.capture);
+      return api.run(JSON.stringify(p));
+    case "run_session":
+      return api.run_session(JSON.stringify(p));
     case "human_new":
-      return api.human_new(p.opponent, p.seed ?? null, p.fixed_button ?? null);
+      return api.human_new(JSON.stringify(p));
     case "human_deal":
       return api.human_deal();
     case "human_act":

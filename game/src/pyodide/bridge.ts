@@ -2,7 +2,7 @@
 // wall-clock timeout for runaway bots (terminate + respawn), and typed calls for both
 // level runs and interactive play.
 
-import type { LevelResult, RunRequest } from "../engine-api/types";
+import type { HumanNewOptions, LevelResult, RunRequest, SessionResult } from "../engine-api/types";
 
 const CALL_TIMEOUT_MS = 20_000;
 
@@ -68,11 +68,13 @@ export class EngineBridge {
   runLevel(req: RunRequest): Promise<LevelResult> {
     return this.call<LevelResult>("run", req);
   }
-  /** fixedButton pins the dealer button (0 = you, 1 = opponent) every hand. */
-  humanNew(opponent: string, seed?: number, fixedButton?: 0 | 1): Promise<any> {
-    return this.call("human_new", {
-      opponent, seed: seed ?? null, fixed_button: fixedButton ?? null,
-    });
+  /** Fixed-stack roll (D1): survive `maxHands` or bust. Campaign objectives use this. */
+  runSession(req: RunRequest & { stack: number; maxHands?: number }): Promise<SessionResult> {
+    return this.call<SessionResult>("run_session", req);
+  }
+  /** Start a live match. opts.fixedButton pins the dealer button (0 = you). */
+  humanNew(opts: HumanNewOptions): Promise<any> {
+    return this.call("human_new", opts);
   }
   humanDeal(): Promise<any> {
     return this.call("human_deal", {});

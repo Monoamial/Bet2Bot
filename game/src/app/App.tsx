@@ -3,7 +3,7 @@ import { EngineBridge } from "../pyodide/bridge";
 import { LEVELS } from "../campaign/levels";
 import type { LevelResult } from "../engine-api/types";
 import { Academy } from "../components/Academy";
-import { LivePlay } from "../components/LivePlay";
+import { GameModes } from "../components/GameModes";
 import { LessonPanel } from "../components/LessonPanel";
 import { LevelSelect } from "../components/LevelSelect";
 import { StrategyBuilder } from "../components/StrategyBuilder";
@@ -96,7 +96,7 @@ export function App() {
           <button className={view === "campaign" ? "on" : ""} onClick={() => setView("campaign")}>Campaign</button>
         </div>
         <span className="level-pill">
-          {view === "learn" ? "Academy" : view === "play" ? "Free play" : level.title}
+          {view === "learn" ? "Academy" : view === "play" ? "Game modes" : level.title}
         </span>
         <div className="spacer" />
         <span className="status">{ready ? "● engine ready" : `○ ${status}`}</span>
@@ -109,7 +109,7 @@ export function App() {
       ) : view === "play" ? (
         <div className="learn-wrap">
           <div style={{ width: "100%", maxWidth: 820 }}>
-            <LivePlay bridgeRef={bridgeRef} ready={ready} />
+            <GameModes bridgeRef={bridgeRef} ready={ready} />
           </div>
         </div>
       ) : (

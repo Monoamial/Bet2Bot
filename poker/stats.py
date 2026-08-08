@@ -60,6 +60,11 @@ class Stats:
         # Curated replays (see run_match(curate=...)): the seat-0 player's biggest
         # wins and losses, each {"kind", "hand", "net", "events"}.
         self.curated: List[dict] = []
+        # Fixed-stack session fields (see run_session): the player's carried stack
+        # after each hand, whether they busted, and the final stack.
+        self.session_stack: List[int] = []
+        self.session_busted: bool = False
+        self.session_final_stack: int = 0
 
     def record(self, result: HandResult) -> None:
         for seat, bs in enumerate(self.seats):

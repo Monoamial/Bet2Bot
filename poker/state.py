@@ -41,6 +41,17 @@ class GameState:
     betting_history: List[Tuple[int, str]]  # (seat, action) in order, this hand
     legal_actions: List[str] = field(default_factory=list)  # what you may return now
 
+    # --- Betting format & stacks (None stack fields = unlimited/limit-classic) ---
+    betting: str = "limit"                  # "limit" | "no_limit"
+    current_bet: int = 0                    # the street's current bet level (to match)
+    my_street_contrib: int = 0              # chips I have put in THIS street
+    my_stack: int | None = None             # my remaining chips (None = unlimited)
+    stacks: List[int] | None = None         # remaining chips per seat (None = unlimited)
+    # Raise window, in "raise TO" terms (total street commitment after raising).
+    # In Limit min == max (fixed size); in No-Limit max is an all-in.
+    min_raise_to: int = 0
+    max_raise_to: int = 0
+
 
 @dataclass
 class HandSummary:

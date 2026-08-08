@@ -51,9 +51,13 @@ the fix. Editor complexity and lessons unlock along this ladder.
   run's stats/events. Grow a *suite* of metrics; each shifts the player's priorities.
 - **Metrics rework**: move beyond bb/100 toward **fixed-stack rolls** (start a stack,
   bust/survive) as a more visceral, game-like measure; bb/100 becomes one lens, not the goal.
-- **Format & table expansion** (later): open betting formats (**No-Limit / Pot-Limit**, which
-  need bet sizing in the action API + builder) and **multi-opponent tables** (6-max: side
-  pots, richer position). Design the block model and interpreter to grow into these.
+  The engine side exists (`run_session`, Survival mode); the campaign objective framework
+  (D2) will consume it.
+- **Format & table expansion**: the engine now plays No-Limit (amount-carrying raises) and
+  multiway with stacks/all-ins/side pots. These surface as **game modes** — Classic Limit
+  stays the default, introductory game (simplest, still instructive); NL heads-up, Survival,
+  and 6-max layer on. Pot-Limit and the builder/lesson integration (sizing blocks, A10)
+  come next; the block model is designed to grow into them.
 - **Matches are fully random** (fresh deck each run); reproducible seeds remain available for
   tests. Objective thresholds must stay meaningful under variance.
 - **Playing → encoding** is the pedagogical heart: each strategy lesson ends with "you just
