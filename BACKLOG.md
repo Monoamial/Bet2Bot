@@ -68,12 +68,15 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 | E4 | **Pot-Limit** format (raise window capped at pot — the engine's default raise is already pot-sized) | P2 | S |
 | E5 | Builder support for sized raises in No-Limit (small/pot/overbet blocks) so bots can play NL modes deliberately — pairs with A10 sizing lessons | P1 | M |
 | E6 | Multiway position conditions in the builder (early/middle/late, not just IP/OOP) | P2 | M |
+| E7 | **Elliptical multiway table layout**: seats arranged around the table (not an opponent row), with the dealer button chip visibly moving seat to seat each hand | P1 | M |
+| E8 | **Game modes reach Campaign & Academy**: levels/lessons that run in NL, Survival, or 6-max once the supporting pieces exist (E5 builder sizing, A10 sizing lessons, D2 survival objectives) — e.g. a survival boss level, a 6-max positional module | P1 | L |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
 |----|------|-----|------|
 | F1 | **Announce what's happening** in manual play: actions called out explicitly (not just bubble text), the runout dealt step by step (flop/turn/river land one at a time, not a silent board swap), and clear street transitions — the table should narrate the hand for a learner | P0 | M |
 | F4 | **Showdown teaching moment**: highlight the winning hand over the losing one (the five cards that play, named categories side by side) to reinforce hand ordering every showdown | P0 | M |
+| F5 | **Chip-stack visuals** in manual play: physical chip stacks per seat that shrink as you bet, bet/pot chips sliding to the middle, pots pushed to the winner — make stack sizes and bet sizes *visible*, not just numbers (especially for NL sizing intuition) | P0 | M |
 | F2 | Post-hand coaching/diagnosis ("you paid off X% of rivers with one pair") | P1 | M |
 | F3 | "Play vs any bot" sandbox polish (choose format/stack/opponent) | P2 | S |
 
@@ -96,9 +99,11 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 
 ## Board
 - **Now:** A5 randomized drills · A9 puzzles · F1 action announcements / step-by-step
-  runout · F4 showdown highlighting.
-- **Next:** A10 sizing lessons + E5 NL builder blocks · A2 module content passes ·
-  B1 creative roster · B2 gated builder · D2 objective framework (survival objectives) ·
-  F2 coaching · H1 shared table component · A7 builder bridges.
-- **Later:** E3 custom tables · E4 Pot-Limit · E6 multiway builder conditions ·
-  G mixed frequencies / draws / board texture · PVP ladder.
+  runout · F4 showdown highlighting · F5 chip-stack visuals.
+- **Next:** E7 elliptical multiway layout + visible button · A10 sizing lessons + E5 NL
+  builder blocks · A2 module content passes · B1 creative roster · B2 gated builder ·
+  D2 objective framework (survival objectives) · F2 coaching · H1 shared table component ·
+  A7 builder bridges.
+- **Later:** E8 game modes in Campaign/Academy (after E5/A10/D2) · E3 custom tables ·
+  E4 Pot-Limit · E6 multiway builder conditions · G mixed frequencies / draws / board
+  texture · PVP ladder.
