@@ -3,6 +3,7 @@ import { EngineBridge } from "../pyodide/bridge";
 import { LEVELS } from "../campaign/levels";
 import type { LevelResult } from "../engine-api/types";
 import { Academy } from "../components/Academy";
+import { Landing } from "../components/Landing";
 import { GameModes } from "../components/GameModes";
 import { LessonPanel } from "../components/LessonPanel";
 import { LevelSelect } from "../components/LevelSelect";
@@ -21,16 +22,15 @@ const LS = {
   },
 };
 
-type View = "learn" | "play" | "campaign";
+type View = "home" | "learn" | "play" | "campaign";
 
 export function App() {
   const bridgeRef = useRef<EngineBridge | null>(null);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("loading engine…");
 
-  const [view, setView] = useState<View>(
-    () => (LS.get("b2b.academyDone", false) ? "campaign" : "learn"),
-  );
+  // First visit lands on the landing page; returning players resume their last tab.
+  const [view, setView] = useState<View>(() => LS.get<View>("b2b.view", "home"));
   const [levelIndex, setLevelIndex] = useState<number>(() => LS.get("b2b.level", 0));
   const [cleared, setCleared] = useState<Set<string>>(
     () => new Set(LS.get<string[]>("b2b.cleared", [])),
@@ -54,7 +54,8 @@ export function App() {
 
   useEffect(() => { LS.set("b2b.strategy", strategy); }, [strategy]);
   useEffect(() => { LS.set("b2b.level", levelIndex); }, [levelIndex]);
-  useEffect(() => { LS.set("b2b.view", view); }, [view]);
+  // Persist the tab, but never "home" — the landing page is a door, not a place.
+  useEffect(() => { if (view !== "home") LS.set("b2b.view", view); }, [view]);
 
   function startCampaign() {
     LS.set("b2b.academyDone", true);
@@ -89,20 +90,28 @@ export function App() {
   return (
     <div className="app">
       <div className="topbar">
-        <h1><span className="logo">♠</span> Bet2Bot</h1>
+        <h1 className="home-link" onClick={() => setView("home")} title="Home">
+          <span className="logo">♠</span> Bet2Bot
+        </h1>
         <div className="nav">
           <button className={view === "learn" ? "on" : ""} onClick={() => setView("learn")}>Learn</button>
           <button className={view === "play" ? "on" : ""} onClick={() => setView("play")}>Play</button>
           <button className={view === "campaign" ? "on" : ""} onClick={() => setView("campaign")}>Campaign</button>
         </div>
-        <span className="level-pill">
-          {view === "learn" ? "Academy" : view === "play" ? "Game modes" : level.title}
-        </span>
+        {view !== "home" && (
+          <span className="level-pill">
+            {view === "learn" ? "Academy" : view === "play" ? "Game modes" : level.title}
+          </span>
+        )}
         <div className="spacer" />
         <span className="status">{ready ? "● engine ready" : `○ ${status}`}</span>
       </div>
 
-      {view === "learn" ? (
+      {view === "home" ? (
+        <div className="learn-wrap">
+          <Landing onEnter={setView} />
+        </div>
+      ) : view === "learn" ? (
         <div className="learn-wrap">
           <Academy onStart={startCampaign} bridgeRef={bridgeRef} ready={ready} />
         </div>
