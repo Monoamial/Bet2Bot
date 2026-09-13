@@ -411,19 +411,35 @@ This is intentionally not merged into `BACKLOG.md`.
 
 ## 10. First execution slice
 
-When implementation begins, execute these in order:
+Because the student's project is not available yet, development starts in a disposable
+reference harness containing **two parallel Godot projects**. Both use the same minimal
+room/computer interaction but deliberately test different PokerBot Lab implementations:
 
-1. **GI-01:** inspect the actual Godot repository and run the existing game.
-2. **GI-03:** from the current computer Python pathway, send one fixed policy into
-   `run_level("caller", ...)` and print only JSON.
-3. **GI-02:** separately prove or reject WebView embedding in an exported build.
-4. **GI-04:** choose the architecture using measured results.
-5. **GI-05/GI-06:** lock the contract before building substantial UI.
-6. **GI-08/GI-09:** connect the computer room.
-7. **GI-11/GI-12:** ship the Caller vertical slice.
+- `webview-spike/` — embedded Bet2Bot route;
+- `native-spike/` — Godot-native PokerBot Lab route.
 
-Avoid porting all of Bet2Bot, redesigning the student's rooms, or supporting arbitrary
-Python before that vertical slice is playable end to end.
+These live outside the standalone Bet2Bot app (currently in the sibling working folder
+`~/godot-bet2bot-spikes`, with a copy on the Mac under `Vassil_Game/godot-bet2bot-spikes`).
+They are integration prototypes, not a third production game.
+
+Execute in this order:
+
+1. Finish **GI-02** in the reference room: install/test Godot WRY first on Apple Silicon,
+   load an embed-oriented Bet2Bot page, and prove focus + JavaScript/GDScript messaging.
+2. Continue **GI-03** in the native reference room: connect its starter rule UI to a fixed
+   policy and a JSON call into `run_level("caller", ...)`.
+3. Compare both in an exported macOS build: startup, focus, packaging, offline behavior,
+   development complexity, and visual fit.
+4. Complete **GI-04** using measured results. Native is the current product preference, but
+   keep the web spike as a benchmark/fallback until the decision is recorded.
+5. Complete **GI-05/GI-06** and lock the shared contract before deepening either UI.
+6. Build **GI-11** (Caller vertical slice) in the selected reference project.
+7. When the student's repository arrives, perform **GI-01**, map its actual systems, then
+   transplant the tested computer/service scene rather than merging the disposable room.
+8. Finish **GI-09/GI-10/GI-12** against the real world, save, dialogue, and quest systems.
+
+Avoid porting all of Bet2Bot, polishing the disposable room, or supporting arbitrary Python
+before the Caller vertical slice is playable end to end.
 
 ## 11. Information needed at kickoff
 
