@@ -1,7 +1,7 @@
 """The read-only view of a hand that gets passed to a bot's act(state) function."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from poker.cards import Card
 
@@ -45,8 +45,8 @@ class GameState:
     betting: str = "limit"                  # "limit" | "no_limit"
     current_bet: int = 0                    # the street's current bet level (to match)
     my_street_contrib: int = 0              # chips I have put in THIS street
-    my_stack: int | None = None             # my remaining chips (None = unlimited)
-    stacks: List[int] | None = None         # remaining chips per seat (None = unlimited)
+    my_stack: Optional[int] = None          # my remaining chips (None = unlimited)
+    stacks: Optional[List[int]] = None      # remaining chips per seat (None = unlimited)
     # Raise window, in "raise TO" terms (total street commitment after raising).
     # In Limit min == max (fixed size); in No-Limit max is an all-in.
     min_raise_to: int = 0
