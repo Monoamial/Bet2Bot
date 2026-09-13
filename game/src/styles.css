@@ -596,7 +596,6 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 /* Embedded host (Godot WebView): fit the app to the native monitor viewport without
    CSS zoom or distortion. Long builder/lesson content scrolls naturally. */
 .app.embedded { display: block; min-height: 100vh; }
-.app.embedded .topbar { display: none; }
 .app.embedded .learn-wrap { width: 100%; max-width: none; padding: 12px 14px 24px; }
 .app.embedded .landing { max-width: 900px; margin: 0 auto; }
 .app.embedded .landing-hero { min-height: 245px; }
