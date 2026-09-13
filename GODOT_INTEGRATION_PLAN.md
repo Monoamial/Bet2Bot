@@ -33,12 +33,55 @@ navigation, dialogue, quests, unlocks, presentation, and save-game progression.
 - An event stream for each replay: blinds, hole cards, actions, board, showdown, award.
 - A React visual strategy builder, Academy, Campaign, and replay/results UI.
 
-### Godot project
+### Godot project (GI-01 inventory, 2026-09-13)
 
-The Godot source is not currently present in the shared folder, so exact Godot version,
-project structure, computer-interface implementation, and the existing Python runner API
-still need to be inspected before implementation. This plan therefore establishes an
-architecture and decision gates rather than assuming details that have not been seen.
+Repo: `TheDragon13000/PokerBot` (uploaded through the GitHub web UI, 4 commits).
+
+- **Engine:** Godot 4.7, GL Compatibility renderer, Jolt physics, `canvas_items` stretch
+  with `expand` aspect. One export preset: Windows Desktop. No macOS/Linux preset yet.
+- **Layout:** flat — all scenes/scripts at the repo root (`room_1.tscn` is the main scene;
+  `bathroom`, `BathroomE`, `teler`, doors, `flicker`, `tile_map`, `wall`). Assets live in
+  `everything/`; raw itch.io asset packs are committed as zips alongside.
+- **Player:** `character_body_2d.gd` (`class_name Player`), WASD via `MoveU/D/L/R` actions,
+  `Interact` action bound to **E**, player is in group `player_group`.
+- **Computer:** `computer.gd` on an `Area2D`. Shows a "Press E" label in range; E toggles
+  `code_editor_ui.tscn`, instantiated under the scene root as a `CanvasLayer` that pauses
+  the tree (`PROCESS_MODE_ALWAYS`). Closing unpauses. Leaving range closes it.
+- **Code editor UI** (`code_editor_ui.gd`, ~600 lines, all built in code): left pane is a
+  `TextEdit` with a Python starter bot (`my_bot(hole, community, pot, to_call, min_raise,
+  my_stack, stage, num_opponents)` returning `(action, amount)`), Run/Close, status label.
+  Right pane is a `TabContainer`: **Table** (custom `_draw` cards/pot/stacks + a BBCode
+  hand log), **Stack graph** (custom polyline), **Match stats**. Bottom is a reference bar
+  of API cheat-sheet columns.
+- **Python execution:** concatenates `res://poker_engine.py` + the user's code + a
+  `play_ranked_match(...)` footer into `user://temp_poker_bot.py`, then **blocking**
+  `OS.execute("python3" | "python")` — relies on a system Python. The engine writes a
+  JSONL event stream to `user://poker_state.jsonl`; Godot parses it and replays events on a
+  `Timer` (types: `ranked_start, hand_start, blinds_posted, hole_cards, street, action,
+  showdown, hand_end, match_end, ranked_end, fatal_error`).
+- **Own engine:** `poker_engine.py` (764 lines): NL Hold'em with stacks, 5-card evaluator,
+  Monte-Carlo equity, three scripted opponents (easy/medium/hard), `run_match`, and a
+  ranked ladder (`easy → medium → hard`, 3 wins to advance) persisted to
+  `poker_progress.json` **next to the engine file** (i.e. inside `res://` — will not work
+  in an exported build; must move to `user://`).
+- **Save/quest systems:** none beyond the ranked-progress JSON. No dialogue system.
+- **State on arrival:** the web upload dropped the `everything/` folder (all textures);
+  restored on branch `restore/missing-assets` from the committed asset packs plus the
+  `.ctex` files inside the July export snapshot. A pre-existing out-of-bounds tile in the
+  `Interiors_free_16x16` atlas (cols 12–18, rows 78–79) logs errors but is harmless.
+
+Implications for the plan:
+
+1. The student's design already matches the plan's shell model: room → computer → editor
+   → run → replay. The PokerBot Lab replaces the *contents* of `code_editor_ui`, keeping
+   `computer.gd`'s open/close/pause contract.
+2. His event stream and Bet2Bot's are close cousins; the integration contract (§6) should
+   be a superset so his Table/Graph views keep working during the transition.
+3. The authored-Python mode (Phase 6) is not optional for him — it is the game's core
+   fantasy. The Bet2Bot block-builder becomes the *on-ramp* to it, not a replacement.
+4. `OS.execute` of system Python is the same packaging risk flagged in §5; the offline
+   Pyodide route proven in the WebView spike (see `godot-bet2bot-spikes/`) is the current
+   best answer for shipping without a Python install.
 
 ## 3. Recommended product boundary
 
@@ -391,7 +434,7 @@ This is intentionally not merged into `BACKLOG.md`.
 
 | ID | Task | Pri | Size | Depends on |
 |---|---|---:|---:|---|
-| GI-01 | Obtain and inventory Godot project; document version, target exports, computer/Python/save/quest architecture | P0 | S | — |
+| GI-01 | ~~Inventory Godot project~~ — done 2026-09-13, see §2 | P0 | S | — |
 | GI-02 | Spike WebView embed on target export and Godot↔JS messaging | P0 | S | GI-01 |
 | GI-03 | Spike existing Python runner↔`poker/game_api` JSON round trip | P0 | S | GI-01 |
 | GI-04 | Architecture decision record: embedded web vs native/sidecar | P0 | S | GI-02, GI-03 |
