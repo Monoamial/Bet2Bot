@@ -29,8 +29,10 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("loading engine…");
 
-  // First visit lands on the landing page; returning players resume their last tab.
-  const [view, setView] = useState<View>(() => LS.get<View>("b2b.view", "home"));
+  // Embedded hosts (Godot WebView) can request a clean, predictable entry screen
+  // without touching the returning player's normal browser preference.
+  const embedded = new URLSearchParams(window.location.search).get("embed") === "1";
+  const [view, setView] = useState<View>(() => embedded ? "home" : LS.get<View>("b2b.view", "home"));
   const [levelIndex, setLevelIndex] = useState<number>(() => LS.get("b2b.level", 0));
   const [cleared, setCleared] = useState<Set<string>>(
     () => new Set(LS.get<string[]>("b2b.cleared", [])),
@@ -55,7 +57,7 @@ export function App() {
   useEffect(() => { LS.set("b2b.strategy", strategy); }, [strategy]);
   useEffect(() => { LS.set("b2b.level", levelIndex); }, [levelIndex]);
   // Persist the tab, but never "home" — the landing page is a door, not a place.
-  useEffect(() => { if (view !== "home") LS.set("b2b.view", view); }, [view]);
+  useEffect(() => { if (!embedded && view !== "home") LS.set("b2b.view", view); }, [view, embedded]);
 
   function startCampaign() {
     LS.set("b2b.academyDone", true);
@@ -88,7 +90,7 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${embedded ? " embedded" : ""}`}>
       <div className="topbar">
         <h1 className="home-link" onClick={() => setView("home")} title="Home">
           <span className="logo">♠</span> Bet2Bot
