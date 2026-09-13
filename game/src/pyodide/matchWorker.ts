@@ -4,8 +4,9 @@
 // or drive an interactive human-vs-bot match). Running off the main thread keeps the UI
 // responsive and lets the main thread terminate a runaway bot.
 
-const PYODIDE_VERSION = "0.26.4";
-const PYODIDE_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+// Runtime is bundled under public/pyodide so Bet2Bot works inside an exported,
+// offline Godot application. Absolute URL is required by dynamic import in a Worker.
+const PYODIDE_URL = new URL(`${import.meta.env.BASE_URL}pyodide/`, self.location.origin).href;
 
 let pyodide: any = null;
 let api: any = null;

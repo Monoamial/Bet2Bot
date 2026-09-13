@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "bundle-engine": "node scripts/bundle_engine.mjs",
-    "predev": "npm run bundle-engine",
+    "bundle-runtime": "node scripts/bundle_runtime.mjs",
+    "bundle-all": "npm run bundle-engine && npm run bundle-runtime",
+    "predev": "npm run bundle-all",
     "dev": "vite",
-    "prebuild": "npm run bundle-engine",
+    "prebuild": "npm run bundle-all",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "pyodide": "^0.26.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
