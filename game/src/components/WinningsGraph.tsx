@@ -1,7 +1,6 @@
-// Animated winnings-over-time graph: the player's cumulative bankroll (in big
-// blinds) after each hand, drawn left-to-right when a run finishes. Pure SVG —
-// the line is revealed with a stroke-dashoffset transition, then the area fill
-// and final value fade in.
+// Animated winnings or survival-stack graph, drawn left-to-right when a run
+// finishes. Limit runs plot cumulative net from zero; fixed-stack sessions plot
+// the carried stack from its starting value. Pure SVG with a draw-in transition.
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -21,8 +20,13 @@ function downsample(values: number[], max: number): { hand: number; v: number }[
   return out;
 }
 
-export function WinningsGraph({ timeline, bigBlind }: { timeline: number[]; bigBlind: number }) {
+export function WinningsGraph({ timeline, bigBlind, startStack }: {
+  timeline: number[];
+  bigBlind: number;
+  startStack?: number;
+}) {
   const [drawn, setDrawn] = useState(false);
+  const isSession = startStack !== undefined;
 
   // Restart the draw animation whenever a new run's timeline arrives.
   useEffect(() => {
@@ -33,42 +37,60 @@ export function WinningsGraph({ timeline, bigBlind }: { timeline: number[]; bigB
 
   const g = useMemo(() => {
     const bb = timeline.map((v) => v / bigBlind);
-    const pts = downsample(bb, MAX_POINTS);
+    const start = startStack === undefined ? undefined : startStack / bigBlind;
+    // Session payloads carry the stack after each hand; prepend the initial stack
+    // so the plotted line starts at the actual bankroll rather than zero.
+    const values = start === undefined ? bb : [start, ...bb];
+    const pts = downsample(values, MAX_POINTS);
     const hands = timeline.length;
-    const lo = Math.min(0, ...bb);
-    const hi = Math.max(0, ...bb);
-    const span = hi - lo || 1;
+    const baseline = start ?? 0;
+    const lo = Math.min(baseline, ...values);
+    const hi = Math.max(baseline, ...values);
+    const flatSession = start !== undefined && hi === lo;
+    const yLo = flatSession ? lo - 0.5 : lo;
+    const yHi = flatSession ? hi + 0.5 : hi;
+    const span = yHi - yLo || 1;
+    const handSpan = start === undefined ? Math.max(1, hands - 1) : Math.max(1, hands);
     const x = (hand: number) =>
-      PAD.left + ((W - PAD.left - PAD.right) * hand) / Math.max(1, hands - 1);
+      PAD.left + ((W - PAD.left - PAD.right) * hand) / handSpan;
     const y = (v: number) =>
-      PAD.top + (H - PAD.top - PAD.bottom) * (1 - (v - lo) / span);
+      PAD.top + (H - PAD.top - PAD.bottom) * (1 - (v - yLo) / span);
     const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p.hand).toFixed(1)},${y(p.v).toFixed(1)}`).join("");
     const last = pts[pts.length - 1];
-    const area = `${line}L${x(last.hand).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z`;
+    const area = `${line}L${x(last.hand).toFixed(1)},${y(baseline).toFixed(1)}L${x(0).toFixed(1)},${y(baseline).toFixed(1)}Z`;
     const final = bb[bb.length - 1];
-    return { line, area, zeroY: y(0), endX: x(last.hand), endY: y(last.v), lo, hi, final, hands };
-  }, [timeline, bigBlind]);
+    return {
+      line, area, baselineY: y(baseline), endX: x(last.hand), endY: y(last.v),
+      lo, hi, baseline, start, final, hands,
+    };
+  }, [timeline, bigBlind, startStack]);
 
-  if (timeline.length < 2) return null;
-  const color = g.final >= 0 ? "#1D9E75" : "#E24B4A";
+  if (timeline.length < (isSession ? 1 : 2)) return null;
+  const color = isSession
+    ? (g.final >= (g.start ?? 0) ? "#1D9E75" : "#E24B4A")
+    : (g.final >= 0 ? "#1D9E75" : "#E24B4A");
 
   return (
     <div className="winnings">
       <div className="winnings-title">
-        Winnings over time <span className="unit">(big blinds)</span>
+        {isSession ? "Stack over time" : "Winnings over time"} <span className="unit">(big blinds)</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="winnings-svg" role="img"
-        aria-label={`Bankroll over ${g.hands} hands, finishing at ${g.final.toFixed(0)} big blinds`}>
-        {/* zero line + y extents */}
-        <line x1={PAD.left} y1={g.zeroY} x2={W - PAD.right} y2={g.zeroY}
+        aria-label={isSession
+          ? `Stack over ${g.hands} hands, starting at ${g.start?.toFixed(0)} and finishing at ${g.final.toFixed(0)} big blinds`
+          : `Bankroll over ${g.hands} hands, finishing at ${g.final.toFixed(0)} big blinds`}>
+        {/* The zero line is for net winnings; sessions use the starting stack as baseline. */}
+        <line x1={PAD.left} y1={g.baselineY} x2={W - PAD.right} y2={g.baselineY}
           stroke="#39414d" strokeDasharray="4 4" />
-        <text x={PAD.left - 6} y={g.zeroY + 4} textAnchor="end" className="axis">0</text>
-        {g.hi > 0 && (
+        <text x={PAD.left - 6} y={g.baselineY + 4} textAnchor="end" className="axis">
+          {isSession ? Math.round(g.baseline) : 0}
+        </text>
+        {g.hi > g.baseline && (
           <text x={PAD.left - 6} y={PAD.top + 4} textAnchor="end" className="axis">
-            +{Math.round(g.hi)}
+            {isSession ? Math.round(g.hi) : `+${Math.round(g.hi)}`}
           </text>
         )}
-        {g.lo < 0 && (
+        {g.lo < g.baseline && (
           <text x={PAD.left - 6} y={H - PAD.bottom + 4} textAnchor="end" className="axis">
             {Math.round(g.lo)}
           </text>
@@ -76,7 +98,7 @@ export function WinningsGraph({ timeline, bigBlind }: { timeline: number[]; bigB
         <text x={W - PAD.right} y={H - 4} textAnchor="end" className="axis">
           {g.hands.toLocaleString()} hands
         </text>
-        <text x={PAD.left} y={H - 4} className="axis">hand 1</text>
+        <text x={PAD.left} y={H - 4} className="axis">{isSession ? "start" : "hand 1"}</text>
 
         {/* area fill fades in after the line draws */}
         <path d={g.area} fill={color} opacity={drawn ? 0.12 : 0}
@@ -90,7 +112,7 @@ export function WinningsGraph({ timeline, bigBlind }: { timeline: number[]; bigB
           style={{ transition: "opacity 300ms ease 1150ms" }} />
         <text x={g.endX + 6} y={g.endY + 4} className="final" fill={color}
           opacity={drawn ? 1 : 0} style={{ transition: "opacity 300ms ease 1150ms" }}>
-          {g.final >= 0 ? "+" : ""}{g.final.toFixed(0)}
+          {isSession ? g.final.toFixed(0) : `${g.final >= 0 ? "+" : ""}${g.final.toFixed(0)}`}
         </text>
       </svg>
     </div>

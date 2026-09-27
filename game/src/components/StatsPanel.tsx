@@ -1,5 +1,6 @@
-import type { LevelResult } from "../engine-api/types";
+import type { LevelResult, SessionResult } from "../engine-api/types";
 import type { Level } from "../campaign/levels";
+import { evaluateObjectives } from "../campaign/objectives";
 import { WinningsGraph } from "./WinningsGraph";
 
 function Chip({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
@@ -12,26 +13,39 @@ function Chip({ label, value, tone }: { label: string; value: string; tone?: "go
 }
 
 export function StatsPanel({
-  result, level, onNext, nextLabel,
+  result, level, previousBest = 0, onNext, nextLabel,
 }: {
-  result: LevelResult;
+  result: LevelResult | SessionResult;
   level: Level;
+  previousBest?: number;
   onNext?: () => void;
   nextLabel?: string;
 }) {
-  const won = result.player_bb100 > level.winBb100;
   const you = result.summary[result.player_index];
+  const objectiveScore = evaluateObjectives(level.objectives, result);
+  const gate = objectiveScore.objectives.find(
+    (objective) => objective.id === level.progressionObjectiveId,
+  );
+  const won = (gate?.stars ?? 0) > 0;
+  const session = "hands_survived" in result ? result : null;
+  const starMarks = `${"★".repeat(objectiveScore.stars)}${"☆".repeat(Math.max(0, objectiveScore.maxStars - objectiveScore.stars))}`;
 
   return (
     <div className="panel">
-      <h2>Results — {result.hands} hands</h2>
+      <h2>{session ? `Results — ${session.hands_survived}/${level.hands} hands` : `Results — ${result.hands} hands`}</h2>
       <div className="body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className={`banner ${won ? "win" : "lose"}`}>
           <span className="big">{won ? "🏆" : "💪"}</span>
           <div style={{ flex: 1 }}>
-            <div>{won ? `You beat ${level.opponentLabel}!` : "Not yet — keep tuning."}</div>
+            <div>
+              {session
+                ? won ? `You survived ${session.hands_survived} hands!` : `Busted after ${session.hands_survived} hands — keep tuning.`
+                : won ? `You beat ${level.opponentLabel}!` : "Not yet — keep tuning."}
+            </div>
             <div style={{ fontWeight: 400, color: "var(--muted)" }}>
-              Your win rate: {you.bb100.toFixed(1)} bb/100 (net {you.net} chips)
+              {session
+                ? `Final stack: ${session.final_stack} chips (${(session.final_stack / result.big_blind).toFixed(1)} bb) · started with ${session.start_stack}`
+                : `Your win rate: ${you.bb100.toFixed(1)} bb/100 (net ${you.net} chips)`}
             </div>
           </div>
           {won && onNext && (
@@ -39,11 +53,51 @@ export function StatsPanel({
           )}
         </div>
 
-        <WinningsGraph timeline={result.timeline} bigBlind={result.big_blind} />
+        <div
+          aria-label="Campaign objective score"
+          style={{ background: "var(--panel-2)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+            <strong>Objective stars</strong>
+            <span aria-label={`${objectiveScore.stars} of ${objectiveScore.maxStars} stars`}>
+              {starMarks} {objectiveScore.stars}/{objectiveScore.maxStars}
+              {objectiveScore.stars > previousBest && <b className="new-best"> New personal best</b>}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {objectiveScore.objectives.map((objective) => (
+              <div key={objective.id}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  {objective.title} <span style={{ color: "var(--muted)", fontWeight: 400 }}>
+                    ({objective.stars}/{objective.maxStars} stars)
+                  </span>
+                </div>
+                {objective.tiers.map((tier) => (
+                  <div key={tier.id} style={{ display: "flex", flexWrap: "wrap", gap: 6, color: "var(--muted)", fontSize: 12 }}>
+                    <span aria-label={tier.passed ? "Met" : "Not met"}>{tier.passed ? "✓" : "○"}</span>
+                    <span>{tier.label}</span>
+                    <span>{tier.checks.map((check) => check.label).join(" · ")}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <WinningsGraph
+          timeline={result.timeline} bigBlind={result.big_blind}
+          startStack={session?.start_stack}
+        />
 
         <div className="chips-row">
-          <Chip label="net chips" value={`${you.net >= 0 ? "+" : ""}${you.net}`}
-            tone={you.net >= 0 ? "good" : "bad"} />
+          {session ? (
+            <Chip label="final stack"
+              value={`${session.final_stack} (${(session.final_stack / result.big_blind).toFixed(1)} bb)`}
+              tone={session.final_stack >= session.start_stack ? "good" : "bad"} />
+          ) : (
+            <Chip label="net chips" value={`${you.net >= 0 ? "+" : ""}${you.net}`}
+              tone={you.net >= 0 ? "good" : "bad"} />
+          )}
           <Chip label="hands won" value={`${you.win_pct.toFixed(0)}%`} />
           <Chip label="biggest pot won" value={`+${you.biggest_win}`} tone="good" />
           <Chip label="worst hand" value={`${you.biggest_loss}`} tone="bad" />
