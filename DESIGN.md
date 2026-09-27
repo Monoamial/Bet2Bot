@@ -20,12 +20,18 @@ and a distinct counter.
    (in position vs out) to *feel* the difference. Lessons hand concepts into bot-building.
 2. **Puzzles (practice)** — randomized one-decision spots with immediate feedback and a
    local practice score/streak. Initially they reuse authored Academy concepts; the
-   difficulty scale is not yet a calibrated Elo system.
+   difficulty scale is not yet a calibrated Elo system. Any randomized puzzle must
+   show only facts that still match its actual cards and price; when we cannot derive
+   or verify a claim, keep the authored deal rather than presenting misinformation.
 3. **Play (experiment)** — sit at the table vs a chosen bot. Classic Limit is the
    introductory mode; sized No-Limit, a carried-stack survival table, and a six-seat
    table let students feel what changes before encoding it. Pot-Limit offers a sized
    intermediate format with raises capped by the pot.
-4. **Campaign (build and challenge)** — the strategy editor + engine and a series of
+4. **Build (sandbox)** — freely edit two independent visual strategies and run
+   reproducible bot-versus-bot matches, without campaign unlocks. This is separate
+   from authored Python bots: arbitrary code execution remains outside the browser
+   sandbox until there is a safe runtime/security design.
+5. **Campaign (build and challenge)** — the strategy editor + engine and a series of
    creative, exploitable bots. Blocks are revealed gradually and reused between bosses;
    campaign results combine objective stars, curated big win/loss replays, a graph, and
    per-bot metrics.
@@ -62,7 +68,10 @@ the fix. Editor complexity and lessons unlock along this ladder.
 - **Format & table expansion**: the engine now plays No-Limit (amount-carrying raises) and
   multiway with stacks/all-ins/side pots. These surface as **game modes** — Classic Limit
   stays the default, introductory game (simplest, still instructive); NL heads-up, Survival,
-  Pot-Limit, and 6-max layer on. The first NL sizing Academy module and postflop/preflop-size
+  Pot-Limit, and 6-max layer on. Short/deep stack presets are distinct from
+  elimination: a true knockout table requires *every* player to carry chips and
+  leave on bust, then a last-survivor result, not merely Survival's one human
+  carried stack against bots that refill. The first NL sizing Academy module and postflop/preflop-size
   builder controls are in place; the latter are shown only for the Survival boss.
   Wider multiway lessons and further NL bosses remain open.
 - **Matches are fully random** (fresh deck each run); reproducible seeds remain available for
@@ -87,5 +96,7 @@ the fix. Editor complexity and lessons unlock along this ladder.
 - **Multi-output results** — curated big win/loss runouts + animated winnings graph + metrics.
 - **Metrics rework** — fixed-stack rolls / objective framework beyond bb/100.
 - **Format & table expansion** — No-Limit / Pot-Limit; multiway tables.
-- **Deeper strategy model** — mixed frequencies, draws, board texture.
+- **Deeper strategy model** — mixed frequencies and history-aware opponent reads
+  with reproducible private bot randomness, then draws/board texture. New hard
+  bosses must be beatable by a counter expressible in the visual editor.
 - **PVP ladder** — submit bots; sandboxed server matches; leaderboard + replays.

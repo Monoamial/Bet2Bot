@@ -3,20 +3,23 @@
 A browser game that teaches poker by having you **build a bot from visual blocks** and
 pit it against AI opponents — plus a **Learn** track (rules via playable hands) and a
 **Play** mode (sit in the seat vs a bot). Teaching-first; see `DESIGN.md` for the vision
-and `BACKLOG.md` for the SCRUM plan.
+and `BACKLOG.md` for the open tasks (`BUILDOUT_PLAN.md` stages the current
+puzzle/stack/bot-lab work separately from the Godot integration plan).
 
 ## Layout
 - `poker/` — the Python engine (pure, dependency-light; runs in the browser via Pyodide).
 - `game/` — the web app (Vite + React + TS). Engine is copied into `game/public/engine/`.
 - `tests/` — pytest suite for the engine (`.venv/bin/python -m pytest`).
 - `DESIGN.md` — living design doc (north star, tracks, concept ladder, roadmap).
-- `BACKLOG.md` — SCRUM: epics, stories, sprint plan, Definition of Done.
+- `BACKLOG.md` — SCRUM: open epics, stories, sprint plan, Definition of Done.
+- `BUILDOUT_PLAN.md` — staged puzzle, knockout, bot-battle, and advanced-policy plan.
 - Root `equity_demo.py`, `Equitytest.py`, `run_simulation.py` — teaching/CLI scratch (keep).
 
 ## Run / test
 ```bash
 .venv/bin/python -m pytest              # engine tests (create .venv + pip install -r requirements.txt first)
 cd game && npm install && npm run dev   # web app on http://localhost:5173
+cd game && npm test                     # frontend/strategy unit tests (Node 22+)
 cd game && npm run build                # type-check (tsc) + production build
 ```
 Editing any `poker/*.py` auto-re-bundles the engine and reloads the page in dev (Vite
@@ -62,11 +65,18 @@ silently change the Campaign's original opponent order.
 Postflop block rules can set an optional `raiseSize` (`small`/half pot, `pot`,
 `overbet`/double pot), which `StrategyBot` interprets as a No-Limit raise-to after
 calling; the engine clamps it to the legal window. Limit ignores size metadata and
-legacy bare raises retain their usual pot-sized No-Limit default. A single optional
+legacy bare raises retain their usual pot-sized No-Limit default. Optional
+postflop two-action `mix` rules choose the alternate action at a specified
+percentage; `run_match` and `run_session` seed each strategy bot's decision RNG
+by seat separately from the deck RNG, so old policies and deals remain unchanged.
+A current-hand `oppRaisedThisHand` condition checks only **public** opponent
+betting actions already taken this hand, not hidden cards or a long-term profile.
+Mixed and history controls are currently available in the unrestricted Build lab;
+the early Campaign levels keep those advanced controls locked. A single optional
 `preflopRaiseSize` applies to all raised classes in the grid in No-Limit; individual
 class sizing is not yet exposed. See `game/src/strategy/model.ts`.
 
-**Formats, stacks & game modes.** The engine plays **Limit or No-Limit**
+**Formats, stacks & game modes.** The engine plays **Limit, No-Limit, or Pot-Limit**
 (`GameConfig.betting`) with optional **stacks** (`GameConfig.stack`, or per-seat
 `stacks=` on `play_hand(_gen)`) — all-ins, short calls, and layered **side pots** are
 handled; with no stack configured, play is the classic unlimited teaching game and
@@ -80,10 +90,16 @@ percentile bands do not overlap; it does not silently edit live objectives.
 `InteractiveMatch` takes a *list* of opponents (multiway), `stack=`, and `carry=`
 (survival). The Play tab (`GameModes.tsx`) exposes these as **game modes** — Classic
 Limit (default, introductory), No-Limit and Pot-Limit heads-up (sized bet controls
-in `LivePlay.tsx`; Pot-Limit caps raises at the pot after calling), Survival,
+in `LivePlay.tsx`; Pot-Limit caps raises at the pot after calling; optional 20BB
+or 100BB stacks **refill for both seats every hand**), Survival,
 and a 6-max Limit table with seats around the felt and the dealer button
 rotating. The campaign's Survivor boss uses the same session primitive with a
-smaller, 50-chip stack and a calibrated counter-strategy hint. One documented simplification: ANY raise reopens
+smaller, 50-chip stack and a calibrated counter-strategy hint. A separate
+`poker/tournament.py` batch-only knockout core carries **every** player's stack,
+removes busted seats, and rotates the button over survivors, with stable global IDs
+in hand records/replays; it does not yet have a live interactive Play mode. Its
+cross-hand bot history hooks are disabled because compacted seat indices differ
+from global tournament IDs. One documented simplification: ANY raise reopens
 action (no special under-raise all-in rule).
 
 The **Academy** (Learn tab) is data-driven from `game/src/academy/lessons.ts`: MODULES of
@@ -96,7 +112,11 @@ lessons use curated rank-changing variants (`academy/randomize.ts`); pairs that 
 position share the same deal, and one attempt keeps its cards until Retry. The
 standalone Puzzles tab uses the same safe templates, with a local practice rating and
 streak (`b2b.puzzles.v1`); missed templates are queued for retry after a few
-other puzzles. This is a practice score, **not** calibrated Elo. Play
+other puzzles. The shared decision facts strip shows authored opponent/position
+when known, board-derived street, actual pot and price, and offered actions;
+randomized copy is tested against all curated options and a 1,024-seed sweep.
+No numeric stack is invented when the lesson did not specify one. This is a
+practice score, **not** calibrated Elo. Play
 lessons can pin the dealer button (`InteractiveMatch(fixed_button=...)`) for
 in/out-of-position drills. A new **Read the opponent** module practices range inference
 against the River Bluffer, Over-folder, and Trapper; its spots have tested,
@@ -106,6 +126,16 @@ rules in a **copy** of the current campaign strategy (`applyLessonBridge`), leav
 unrelated user choices untouched; the basic bridge only navigates. The sixth module
 adds No-Limit price/pot-odds content (`SizingDrill.tsx`) and two live hands with
 sized raises; previous introductory Limit lessons are intentionally unchanged.
+
+## Build lab (separate from Campaign)
+`game/src/components/BuildLab.tsx` edits two **independent** JSON Builder strategies
+(Bot A and Bot B) with separate localStorage keys, preset starting policies, and all
+current rule controls. Its `run_policy_match` worker/API call instantiates two
+`StrategyBot`s in a bounded, seeded heads-up Limit `run_match` and displays both
+summaries and curated hand-event logs; no arbitrary Python executes. The Python API
+accepts a validated optional format/stack config for later UI work, but the current
+lab UI exposes only heads-up Limit. Future format/stack controls, seat-swapped
+comparisons, animated replays and versioned policy import/export remain in BACKLOG.
 
 ## Conventions
 - **Teaching project** → favor readable, well-commented code over cleverness.
@@ -120,7 +150,8 @@ sized raises; previous introductory Limit lessons are intentionally unchanged.
   tests and `cd game && npm test` (Node's TypeScript-stripping unit tests) before
   deployment, then builds with `--base=/Bet2Bot/`. The generator refactor is covered by
   parity tests — don't diverge batch vs interactive behavior.
-- The Campaign stays **Limit heads-up** (the four-action introductory game); formats,
-  stacks, and multiway live behind **game modes** and engine config, not level defaults.
+- The first three Campaign levels stay **Limit heads-up** (introductory game);
+  Level 4 is a calibrated No-Limit survival boss. Multiway and manual knockout
+  remain outside the Campaign for now.
 - Pot-odds is a weak lever in Limit (a single bet is almost always a cheap call) — it's
   supported in the interpreter but de-emphasized in the campaign unlocks.
