@@ -23,11 +23,11 @@ you apply it live. This is the current top priority.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| A2 | Individual content passes on the 5 existing modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: pot odds/equity, hand reading, board texture, bankroll | P1 | L |
+| A2 | Individual content passes on the 5 original modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: deeper equity, hand reading, board texture, bankroll | P1 | L |
 | A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
 | A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
-| A10 | Now that variable betting is in the engine (NL game modes), rework lessons/drills to teach sizing (value sizing, bluff sizing, pot odds vs price) — pairs with E5 builder blocks | P1 | M |
 | A11 | Grow Puzzles beyond the initial curated Academy scenario pool: new pot-odds/board-texture/hand-reading spots, calibrated difficulty, and spaced repetition of missed concepts (initial rating is an uncalibrated practice score) | P1 | L |
+| A12 | Expand introductory No-Limit sizing module: more size/price spots, randomized pot-odds numbers (validated mathematically), and a bridge that pre-fills an NL builder rule once NL campaign play exists | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
 Goal: a rich campaign that slowly teaches you to build a more effective bot, and *feels*
@@ -67,7 +67,7 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 | E4 | **Pot-Limit** format (raise window capped at pot — the engine's default raise is already pot-sized) | P2 | S |
 | E5 | Builder support for sized raises in No-Limit (small/pot/overbet blocks) so bots can play NL modes deliberately — pairs with A10 sizing lessons | P1 | M |
 | E6 | Multiway position conditions in the builder (early/middle/late, not just IP/OOP) | P2 | M |
-| E8 | **Game modes reach Campaign & Academy**: levels/lessons that run in NL, Survival, or 6-max once the supporting pieces exist (E5 builder sizing, A10 sizing lessons, D2 survival objectives) — e.g. a survival boss level, a 6-max positional module | P1 | L |
+| E8 | **Game modes reach Campaign & Academy**: levels/lessons that run in NL, Survival, or 6-max once the supporting pieces exist (E5 builder sizing, D2 survival objectives) — e.g. a survival boss level, a 6-max positional module | P1 | L |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
@@ -94,11 +94,11 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 ---
 
 ## Board
-- **Now:** A10 sizing lessons · A2 individual module content passes · A11 richer puzzles +
-  calibrated difficulty · F6 hand-order/tie explanations.
+- **Now:** A2 individual module content passes · A11 richer puzzles + calibrated
+  difficulty · A12 deeper sizing practice · F6 hand-order/tie explanations.
 - **Next:** E5 NL builder blocks (in progress) · B1 creative roster · B2 gated builder ·
   D2 objective framework (survival objectives) · F2 coaching · H1 shared table component ·
   A7 builder bridges.
-- **Later:** E8 game modes in Campaign/Academy (after E5/A10/D2) · E3 custom tables ·
+- **Later:** E8 game modes in Campaign/Academy (after E5/D2) · E3 custom tables ·
   E4 Pot-Limit · E6 multiway builder conditions · G mixed frequencies / draws / board
   texture · PVP ladder.

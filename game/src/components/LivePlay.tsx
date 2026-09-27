@@ -17,6 +17,9 @@ export const OPPONENTS = [
   { key: "maniac", label: "The Maniac" },
   { key: "tight_aggressive", label: "The Shark" },
   { key: "profiler", label: "The Profiler" },
+  { key: "river_bluffer", label: "The River Bluffer" },
+  { key: "over_folder", label: "The Over-folder" },
+  { key: "trapper", label: "The Trapper" },
 ];
 const ACTION_ORDER: Action[] = ["fold", "check", "call", "raise"];
 
@@ -256,7 +259,7 @@ function LiveTableBody({
               ))
               : <span style={{ color: "#bfe9d0" }}>— preflop —</span>}
           </div>
-          <div className="pot">POT {view.pot} <Chips amount={view.pot} pot /></div>
+          <div className="pot">{view.winners.length ? "POT AWARDED" : `POT ${view.pot}`} <Chips amount={view.pot} pot /></div>
           <Seat view={view} index={0} name="You" kind="you" isYou={true}
             stack={view.stacks ? view.stacks[0] : null} />
           {view.lastBet != null && (

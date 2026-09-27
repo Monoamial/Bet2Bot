@@ -8,6 +8,7 @@ import { MODULES, Lesson, Module } from "../academy/lessons";
 import { HandRankChart } from "./HandRankChart";
 import { ScriptedHand } from "./ScriptedHand";
 import { ScenarioDrill } from "./ScenarioDrill";
+import { SizingDrill } from "./SizingDrill";
 import { LivePlay } from "./LivePlay";
 import { CardView } from "./Card";
 import type { EngineBridge } from "../pyodide/bridge";
@@ -183,6 +184,9 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
           {lesson.kind === "scenario" && (
             <ScenarioDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)} />
           )}
+          {lesson.kind === "sizing" && (
+            <SizingDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)} />
+          )}
           {lesson.kind === "play" && (
             <>
               {lesson.body.map((p, i) => <p key={i} className="academy-p">{p}</p>)}
@@ -192,6 +196,8 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
                 ready={ready}
                 fixedOpponent={lesson.opponent}
                 fixedButton={lesson.fixedButton}
+                betting={lesson.betting}
+                stack={lesson.stack}
                 autoStart
                 embedded
                 onHandDone={() => setHandsDone((h) => {
@@ -218,7 +224,7 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
                 ? isLast ? "Finish module ✓" : "Next →"
                 : lesson.kind === "play"
                   ? `Play ${needHands - handsDone} more hand${needHands - handsDone === 1 ? "" : "s"} to continue`
-                  : lesson.kind === "scenario" ? "Finish the drill to continue" : "Answer to continue"}
+                  : lesson.kind === "scenario" || lesson.kind === "sizing" ? "Finish the drill to continue" : "Answer to continue"}
             </button>
           )}
         </div>

@@ -18,6 +18,12 @@ import type { Action } from "../strategy/model";
 
 export interface SpotChoice { action: Action; verdict: "good" | "ok" | "bad"; feedback: string }
 
+export interface SizingSpot {
+  hole: [string, string]; board: string[];
+  pot: number; toCall: number; stack: number; tag: string; situation: string;
+  choices: { label: string; verdict: "good" | "ok" | "bad"; feedback: string }[];
+}
+
 // One served decision spot inside a scenario drill.
 export interface Spot {
   hole: [string, string];
@@ -43,9 +49,12 @@ export type Lesson =
       choices: SpotChoice[];
     }
   | { kind: "scenario"; id: string; title: string; intro: string[]; spots: Spot[] }
+  | { kind: "sizing"; id: string; title: string; intro: string[]; spots: SizingSpot[] }
   | {
       kind: "play"; id: string; title: string; body: string[]; opponent: string;
       fixedButton?: 0 | 1;   // pin the dealer button: 0 = you (in position postflop)
+      betting?: "limit" | "no_limit"; // lessons default to introductory Limit
+      stack?: number;        // starting chips per seat (No-Limit lessons)
       requireHands?: number; // hands to finish before Continue unlocks (default 1)
     }
   | { kind: "bridge"; id: string; title: string; body: string[]; cta: string; action?: "campaign" };
@@ -580,10 +589,94 @@ const DISCIPLINE: Module = {
   ],
 };
 
+// ---------------------------------------------------------------------------------
+// Module 6 — No-Limit sizing: the action can be correct while the PRICE is wrong.
+// ---------------------------------------------------------------------------------
+
+const BET_SIZING: Module = {
+  id: "sizing",
+  icon: "🪙",
+  title: "Bet sizes & pot odds",
+  blurb: "No-Limit decisions: choose your price, charge callers, and know when a call pays.",
+  lessons: [
+    {
+      kind: "read", id: "why-size", title: "The size is part of the decision",
+      body: [
+        "Classic Limit has one raise size. In No-Limit, the same Raise decision can mean half a pot, a full pot, or your entire stack. You are setting a PRICE for the next player.",
+        "For value, bet larger when a weaker hand will still call: a calling station that pays 20 chips is worth more than one that pays 5. But if a tight opponent folds everything to a huge bet, you can't get paid.",
+        "For a bluff, choose the smallest bet that gets enough folds. Risking 20 to win 10 needs them to fold more often than risking 5 to win 10. Don't bluff someone who calls everything, however small the bet.",
+        "The bet controls show 'raise TO' the total chips you put in this street, not 'raise BY'. If you already contributed 4 and raise to 12, you add 8 more chips.",
+      ],
+    },
+    {
+      kind: "quiz", id: "price-to-call", title: "What price are you getting?",
+      prompt: "The pot has 12 chips after your opponent bets. It costs 4 more to call. How often must your hand win to break even on the call?",
+      options: [
+        { label: "25% — 4 to win 16", correct: true,
+          feedback: "Right: call 4, and the final pot will be 16. You need 4 ÷ 16 = 25% equity to break even (before future betting)." },
+        { label: "33% — 4 divided by 12",
+          feedback: "The pot grows when you call. Divide your 4-chip call by the 16-chip final pot, not the current 12." },
+        { label: "50% — every call is a coin flip",
+          feedback: "Your price depends on the pot and call size. Here you risk 4 to win 16, so 25% is enough." },
+      ],
+    },
+    {
+      kind: "sizing", id: "size-drill", title: "Choose a price, not just an action",
+      intro: [
+        "The answers below are teaching heuristics, not rigid poker laws. Read your opponent's tendency, the pot, and the cost before sizing.",
+        "One attempt per spot. The cards and price shown stay fixed for this introductory drill.",
+      ],
+      spots: [
+        {
+          hole: ["Ah", "Kh"], board: ["Ks", "7c", "2d", "3h", "9c"], pot: 20, toCall: 0, stack: 100,
+          tag: "RIVER — value vs a caller", situation:
+            "You have top pair, top kicker. The Caller checks and calls almost anything with weaker pairs. How much should you bet for value?",
+          choices: [
+            { label: "Check", verdict: "bad", feedback: "A calling station won't bet for you. Checking leaves value on the table." },
+            { label: "Bet 5 (¼ pot)", verdict: "ok", feedback: "You'll often get called, but this opponent would call more. Charge them while they still like their pair." },
+            { label: "Bet 15 (¾ pot)", verdict: "good", feedback: "Good value size: weak pairs still call this opponent's favorite price, and you earn more than with a tiny bet." },
+            { label: "All-in 100 (5× pot)", verdict: "bad", feedback: "Too much to assume even a calling station pays off with any pair. A large-but-callable bet beats a shove." },
+          ],
+        },
+        {
+          hole: ["Qh", "Jh"], board: ["7s", "4d", "2c"], pot: 10, toCall: 0, stack: 100,
+          tag: "FLOP — bluff vs an over-folder", situation:
+            "You have no made hand. The Rock folds to ordinary bets on dry boards. If you bluff, which price risks the least while still pressuring them?",
+          choices: [
+            { label: "Check", verdict: "ok", feedback: "Checking costs nothing, but misses a profitable small steal against someone who over-folds." },
+            { label: "Bet 5 (½ pot)", verdict: "good", feedback: "A half-pot bluff risks 5 to win 10, so it only needs folds more than one third of the time." },
+            { label: "Bet 10 (pot)", verdict: "ok", feedback: "A pot-size bluff needs folds over half the time. The small bet already gets this player to fold." },
+            { label: "All-in 100", verdict: "bad", feedback: "Risking 100 to win 10 is unnecessary when a 5-chip bet works. Save your stack." },
+          ],
+        },
+        {
+          hole: ["9h", "8h"], board: ["Qh", "5h", "2d", "Kc"], pot: 12, toCall: 4, stack: 100,
+          tag: "TURN — flush draw vs a bet", situation:
+            "You have nine possible heart outs for a flush, but only one card remains. The pot is 12 after their 4-chip bet. Is calling for the flush alone worth this price?",
+          choices: [
+            { label: "Fold", verdict: "good", feedback: "Nine hearts among 46 unseen cards is about 20%, below the 25% price (4 ÷ 16). Without implied odds, fold." },
+            { label: "Call 4", verdict: "bad", feedback: "A 20% one-card flush chance does not cover a 25% pot-odds price on its own. Future payoffs could change the answer, but aren't assumed here." },
+            { label: "Raise to 20", verdict: "bad", feedback: "Turning a draw into a bluff is a different plan; this spot only asks if the immediate call pays for itself." },
+          ],
+        },
+      ],
+    },
+    {
+      kind: "play", id: "size-live", title: "Feel the prices at the table",
+      body: [
+        "Two hands against the Caller in No-Limit. You have 200 chips (100 big blinds), refilled each hand. Use half-pot/pot presets or the slider when betting; notice how the pot and your stack move by the amount you chose.",
+        "The lesson unlocks after two hands, win or lose. The goal is to experiment with the price, not maximize short-run winnings.",
+      ],
+      opponent: "caller", betting: "no_limit", stack: 200, requireHands: 2,
+    },
+  ],
+};
+
 export const MODULES: Module[] = [
   HOW_POKER_WORKS,
   FIRST_DECISIONS,
   POSITION,
   VALUE_BETTING,
   DISCIPLINE,
+  BET_SIZING,
 ];

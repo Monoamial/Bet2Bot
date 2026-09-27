@@ -70,7 +70,9 @@ position share the same deal, and one attempt keeps its cards until Retry. The
 standalone Puzzles tab uses the same safe templates, with a local practice rating and
 streak (`b2b.puzzles.v1`). This is a practice score, **not** calibrated Elo. Play
 lessons can pin the dealer button (`InteractiveMatch(fixed_button=...)`) for
-in/out-of-position drills.
+in/out-of-position drills. The sixth module adds No-Limit price/pot-odds
+content (`SizingDrill.tsx`) and two live hands with sized raises; previous introductory
+Limit lessons are intentionally unchanged.
 
 ## Conventions
 - **Teaching project** → favor readable, well-commented code over cleverness.
