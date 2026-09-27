@@ -29,6 +29,16 @@ jobs:
       - name: Install
         working-directory: game
         run: npm ci
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test Python engine
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q
+      - name: Test strategy and Academy policies
+        working-directory: game
+        run: npm test
       - name: Build (base = /Bet2Bot/)
         working-directory: game
         run: npm run build -- --base=/Bet2Bot/
