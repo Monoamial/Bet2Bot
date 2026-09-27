@@ -132,7 +132,7 @@ export function ScenarioDrill({ lesson, onSolved, onMastery }: {
         <div className="drill-score">{score} / {total}</div>
         <p className="academy-p">
           {perfect
-            ? "Perfect — you read every situation correctly. These are exactly the judgments your bot rules will encode."
+            ? "Perfect — you read every situation correctly. Try the same ideas in live hands; some will need richer bot rules later."
             : solid
               ? "Solid. Before you retry, recall the opponent, your hand, and the price in any spot you missed."
               : "The concept hasn't clicked yet — that's what drills are for. Run it again and read the situation before the cards."}
