@@ -31,7 +31,7 @@ async function loadEngine() {
   pyodide.runPython(`import sys; sys.path.insert(0, "${root}")`);
   api = pyodide.runPython(`
 import json
-from poker.game_api import run_level, run_session, human_new, human_deal, human_act
+from poker.game_api import run_level, run_session, run_policy_match, human_new, human_deal, human_act
 
 class _Api:
     def run(self, req_json):
@@ -45,6 +45,12 @@ class _Api:
             opponent=r["opponent"], strategy=r["strategy"], stack=r["stack"],
             max_hands=r.get("maxHands", 500), seed=r.get("seed"),
             capture=r.get("capture", 6), config=r.get("config")))
+    def policy_match(self, req_json):
+        r = json.loads(req_json)
+        return json.dumps(run_policy_match(
+            strategy_a=r.get("strategyA"), strategy_b=r.get("strategyB"),
+            hands=r.get("hands", 500), seed=r.get("seed"),
+            capture=r.get("capture", 4), config=r.get("config")))
     def human_new(self, req_json):
         r = json.loads(req_json)
         return json.dumps(human_new(
@@ -79,6 +85,8 @@ function dispatch(cmd: string, p: any): string {
       return api.run(JSON.stringify(p));
     case "run_session":
       return api.run_session(JSON.stringify(p));
+    case "policy_match":
+      return api.policy_match(JSON.stringify(p));
     case "human_new":
       return api.human_new(JSON.stringify(p));
     case "human_deal":

@@ -78,6 +78,20 @@ export interface RunRequest {
   config?: Record<string, unknown>;
 }
 
+/** Two Builder policies competing in a seeded batch match (Build Lab). */
+export interface PolicyMatchRequest {
+  strategyA: unknown;
+  strategyB: unknown;
+  hands: number;
+  seed?: number;
+  capture: number;
+  config?: Record<string, unknown>;
+}
+
+export interface PolicyMatchResult extends LevelResult {
+  seed: number | null;
+}
+
 export type WorkerOut =
   | { type: "status"; message: string }
   | { type: "ready" }

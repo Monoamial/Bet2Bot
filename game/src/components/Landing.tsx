@@ -21,6 +21,13 @@ const TRACKS = [
     cta: "Pick a game mode",
   },
   {
+    key: "build" as const,
+    icon: "⚙",
+    title: "Build",
+    pitch: "Experiment with two independent bot strategies and let them battle in a sandbox. No campaign gate or coding required.",
+    cta: "Open bot lab",
+  },
+  {
     key: "campaign" as const,
     icon: "🤖",
     title: "Campaign",
@@ -29,7 +36,7 @@ const TRACKS = [
   },
 ];
 
-export function Landing({ onEnter }: { onEnter: (view: "learn" | "play" | "campaign") => void }) {
+export function Landing({ onEnter }: { onEnter: (view: "learn" | "play" | "build" | "campaign") => void }) {
   return (
     <div className="landing">
       <div className="landing-hero">

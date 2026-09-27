@@ -6,6 +6,7 @@ import type { LevelResult, SessionResult } from "../engine-api/types";
 import { Academy } from "../components/Academy";
 import { Landing } from "../components/Landing";
 import { GameModes } from "../components/GameModes";
+import { BuildLab } from "../components/BuildLab";
 import { Puzzles } from "../components/Puzzles";
 import { LessonPanel } from "../components/LessonPanel";
 import { LevelSelect } from "../components/LevelSelect";
@@ -24,7 +25,7 @@ const LS = {
   },
 };
 
-type View = "home" | "learn" | "puzzles" | "play" | "campaign";
+type View = "home" | "learn" | "puzzles" | "play" | "build" | "campaign";
 
 export function App() {
   const bridgeRef = useRef<EngineBridge | null>(null);
@@ -128,11 +129,12 @@ export function App() {
           <button className={view === "learn" ? "on" : ""} onClick={() => setView("learn")}>Learn</button>
           <button className={view === "puzzles" ? "on" : ""} onClick={() => setView("puzzles")}>Puzzles</button>
           <button className={view === "play" ? "on" : ""} onClick={() => setView("play")}>Play</button>
+          <button className={view === "build" ? "on" : ""} onClick={() => setView("build")}>Build</button>
           <button className={view === "campaign" ? "on" : ""} onClick={() => setView("campaign")}>Campaign</button>
         </div>
         {view !== "home" && (
           <span className="level-pill">
-            {view === "learn" ? "Academy" : view === "puzzles" ? "Practice" : view === "play" ? "Game modes" : level.title}
+            {view === "learn" ? "Academy" : view === "puzzles" ? "Practice" : view === "play" ? "Game modes" : view === "build" ? "Bot lab" : level.title}
           </span>
         )}
         <div className="spacer" />
@@ -155,6 +157,8 @@ export function App() {
             <GameModes bridgeRef={bridgeRef} ready={ready} />
           </div>
         </div>
+      ) : view === "build" ? (
+        <div className="learn-wrap"><BuildLab bridgeRef={bridgeRef} ready={ready} /></div>
       ) : (
         <div className="main">
           <div className="col">

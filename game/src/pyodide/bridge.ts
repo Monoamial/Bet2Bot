@@ -2,7 +2,9 @@
 // wall-clock timeout for runaway bots (terminate + respawn), and typed calls for both
 // level runs and interactive play.
 
-import type { HumanNewOptions, LevelResult, RunRequest, SessionResult } from "../engine-api/types";
+import type {
+  HumanNewOptions, LevelResult, PolicyMatchRequest, PolicyMatchResult, RunRequest, SessionResult,
+} from "../engine-api/types";
 
 const CALL_TIMEOUT_MS = 20_000;
 
@@ -67,6 +69,10 @@ export class EngineBridge {
 
   runLevel(req: RunRequest): Promise<LevelResult> {
     return this.call<LevelResult>("run", req);
+  }
+  /** Seeded batch match between two independent Builder policies. */
+  runPolicyMatch(req: PolicyMatchRequest): Promise<PolicyMatchResult> {
+    return this.call<PolicyMatchResult>("policy_match", req);
   }
   /** Fixed-stack roll (D1): survive `maxHands` or bust. Campaign objectives use this. */
   runSession(req: RunRequest & { stack: number; maxHands?: number }): Promise<SessionResult> {

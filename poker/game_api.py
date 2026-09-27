@@ -106,6 +106,82 @@ def _payload(stats, cfg: GameConfig, hands: int) -> dict:
     }
 
 
+POLICY_MATCH_MAX_HANDS = 500
+POLICY_MATCH_MAX_CAPTURE = 8
+_POLICY_MATCH_CONFIG_FIELDS = {
+    "small_bet", "big_bet", "small_blind", "big_blind", "raise_cap", "betting", "stack",
+}
+
+
+def _policy_match_config(config: Optional[dict]):
+    """Validate the JSON-safe subset of GameConfig exposed to policy matches."""
+    if config is None:
+        return GameConfig(), None
+    if not isinstance(config, dict):
+        return None, "Match config must be an object."
+    unknown = set(config) - _POLICY_MATCH_CONFIG_FIELDS
+    if unknown:
+        return None, f"Unsupported match config field: {sorted(unknown)[0]}."
+
+    betting = config.get("betting", "limit")
+    if betting not in ("limit", "no_limit", "pot_limit"):
+        return None, "Betting must be limit, no_limit, or pot_limit."
+
+    for key in ("small_bet", "big_bet", "small_blind", "big_blind", "raise_cap"):
+        if key in config:
+            value = config[key]
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                return None, f"{key} must be a positive whole number."
+    stack = config.get("stack")
+    if stack is not None and (not isinstance(stack, int) or isinstance(stack, bool) or stack <= 0):
+        return None, "stack must be a positive whole number."
+
+    small_blind = config.get("small_blind", GameConfig.small_blind)
+    big_blind = config.get("big_blind", GameConfig.big_blind)
+    if small_blind > big_blind:
+        return None, "small_blind cannot exceed big_blind."
+    try:
+        return GameConfig(**config), None
+    except (TypeError, ValueError) as exc:
+        return None, f"Invalid match config: {exc}"
+
+
+def run_policy_match(
+    strategy_a: dict,
+    strategy_b: dict,
+    hands: int = 500,
+    seed: Optional[int] = None,
+    capture: int = 4,
+    config: Optional[dict] = None,
+) -> dict:
+    """Run two Builder JSON policies head-to-head through the batch match runner.
+
+    Both seats are StrategyBots, not entries from OPPONENTS. `seed` is passed through
+    unchanged for reproducible deals. Policies are data interpreted by StrategyBot;
+    this API does not execute Python or accept custom bot code.
+    """
+    if not isinstance(strategy_a, dict) or not isinstance(strategy_b, dict):
+        return {"error": "Both bot strategies must be policy objects."}
+    if not isinstance(hands, int) or isinstance(hands, bool) or not 1 <= hands <= POLICY_MATCH_MAX_HANDS:
+        return {"error": f"Hands must be a whole number from 1 to {POLICY_MATCH_MAX_HANDS}."}
+    if seed is not None and (not isinstance(seed, int) or isinstance(seed, bool)):
+        return {"error": "Seed must be a whole number or omitted."}
+    if not isinstance(capture, int) or isinstance(capture, bool) or not 0 <= capture <= POLICY_MATCH_MAX_CAPTURE:
+        return {"error": f"Replay capture must be a whole number from 0 to {POLICY_MATCH_MAX_CAPTURE}."}
+
+    cfg, config_error = _policy_match_config(config)
+    if config_error:
+        return {"error": config_error}
+    bots = {
+        "Bot A": StrategyBot(strategy_a),
+        "Bot B": StrategyBot(strategy_b),
+    }
+    stats = run_match(bots, hands=hands, config=cfg, seed=seed, curate=capture // 2)
+    result = _payload(stats, cfg, hands)
+    result["seed"] = seed
+    return result
+
+
 def run_level(
     opponent: Union[str, List[str]],
     strategy: dict,
