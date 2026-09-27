@@ -24,11 +24,10 @@ you apply it live. This is the current top priority.
 | ID | Task | Pri | Size |
 |----|------|-----|------|
 | A2 | Individual content passes on the 5 existing modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: pot odds/equity, hand reading, board texture, bankroll | P1 | L |
-| A5 | **Randomized drills within lessons**: concept drills deal different cards each attempt (generate/parameterize spots instead of the current fixed sequence) so repeating a drill actually teaches | P0 | L |
 | A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
 | A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
-| A9 | **Puzzles section** (chess.com-style): a standalone tab serving randomized standalone decision spots across all learned concepts — rated/streaked, independent of any lesson | P0 | L |
 | A10 | Now that variable betting is in the engine (NL game modes), rework lessons/drills to teach sizing (value sizing, bluff sizing, pot odds vs price) — pairs with E5 builder blocks | P1 | M |
+| A11 | Grow Puzzles beyond the initial curated Academy scenario pool: new pot-odds/board-texture/hand-reading spots, calibrated difficulty, and spaced repetition of missed concepts (initial rating is an uncalibrated practice score) | P1 | L |
 
 ## B — Campaign: creative bots & gated bot-building
 Goal: a rich campaign that slowly teaches you to build a more effective bot, and *feels*
@@ -68,15 +67,12 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 | E4 | **Pot-Limit** format (raise window capped at pot — the engine's default raise is already pot-sized) | P2 | S |
 | E5 | Builder support for sized raises in No-Limit (small/pot/overbet blocks) so bots can play NL modes deliberately — pairs with A10 sizing lessons | P1 | M |
 | E6 | Multiway position conditions in the builder (early/middle/late, not just IP/OOP) | P2 | M |
-| E7 | **Elliptical multiway table layout**: seats arranged around the table (not an opponent row), with the dealer button chip visibly moving seat to seat each hand | P1 | M |
 | E8 | **Game modes reach Campaign & Academy**: levels/lessons that run in NL, Survival, or 6-max once the supporting pieces exist (E5 builder sizing, A10 sizing lessons, D2 survival objectives) — e.g. a survival boss level, a 6-max positional module | P1 | L |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| F1 | **Announce what's happening** in manual play: actions called out explicitly (not just bubble text), the runout dealt step by step (flop/turn/river land one at a time, not a silent board swap), and clear street transitions — the table should narrate the hand for a learner | P0 | M |
-| F4 | **Showdown teaching moment**: highlight the winning hand over the losing one (the five cards that play, named categories side by side) to reinforce hand ordering every showdown | P0 | M |
-| F5 | **Chip-stack visuals** in manual play: physical chip stacks per seat that shrink as you bet, bet/pot chips sliding to the middle, pots pushed to the winner — make stack sizes and bet sizes *visible*, not just numbers (especially for NL sizing intuition) | P0 | M |
+| F6 | At showdown, explain ties/kickers and side-pot eligibility when hand categories match (current display highlights five playing cards and names categories) | P1 | M |
 | F2 | Post-hand coaching/diagnosis ("you paid off X% of rivers with one pair") | P1 | M |
 | F3 | "Play vs any bot" sandbox polish (choose format/stack/opponent) | P2 | S |
 
@@ -98,10 +94,9 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 ---
 
 ## Board
-- **Now:** A5 randomized drills · A9 puzzles · F1 action announcements / step-by-step
-  runout · F4 showdown highlighting · F5 chip-stack visuals.
-- **Next:** E7 elliptical multiway layout + visible button · A10 sizing lessons + E5 NL
-  builder blocks · A2 module content passes · B1 creative roster · B2 gated builder ·
+- **Now:** A10 sizing lessons · A2 individual module content passes · A11 richer puzzles +
+  calibrated difficulty · F6 hand-order/tie explanations.
+- **Next:** E5 NL builder blocks (in progress) · B1 creative roster · B2 gated builder ·
   D2 objective framework (survival objectives) · F2 coaching · H1 shared table component ·
   A7 builder bridges.
 - **Later:** E8 game modes in Campaign/Academy (after E5/A10/D2) · E3 custom tables ·

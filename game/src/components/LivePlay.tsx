@@ -26,6 +26,13 @@ export function opponentLabel(key: string): string {
 
 interface SeatView { cards: string[]; bubble: string; allIn: boolean }
 interface View {
+  button: number;
+  stacks: number[] | null;
+  announcement: string;
+  bestFive: Record<number, string[]>;
+  streetBets: Record<number, number>;
+  lastBet: number | null;
+  actionNumber: number;
   seats: Record<number, SeatView>;
   board: string[];
   pot: number;
@@ -33,7 +40,7 @@ interface View {
   winners: number[];
   hands: Record<number, string>;
 }
-const emptyView = (): View => ({ seats: {}, board: [], pot: 0, acting: null, winners: [], hands: {} });
+const emptyView = (): View => ({ button: 0, stacks: null, announcement: "Waiting for the deal", bestFive: {}, streetBets: {}, lastBet: null, actionNumber: 0, seats: {}, board: [], pot: 0, acting: null, winners: [], hands: {} });
 
 function label(e: Extract<PokerEvent, { type: "action" }>): string {
   const { action, amount } = e;
@@ -45,34 +52,67 @@ function label(e: Extract<PokerEvent, { type: "action" }>): string {
   return action;
 }
 
-function apply(view: View, events: PokerEvent[]): View {
-  const v: View = { ...view, seats: { ...view.seats } };
+function apply(view: View, events: PokerEvent[], names: string[]): View {
+  const v: View = { ...view, seats: { ...view.seats }, streetBets: { ...view.streetBets }, stacks: view.stacks?.slice() ?? null };
   const seat = (i: number) => (v.seats[i] = v.seats[i] ?? { cards: [], bubble: "", allIn: false });
   for (const e of events) {
     switch (e.type) {
       case "blinds":
+        v.button = e.button; v.stacks = e.stacks?.slice() ?? null;
+        v.streetBets[e.sb_seat] = e.sb;
+        v.streetBets[e.bb_seat] = e.bb;
+        v.lastBet = null;
         seat(e.sb_seat).bubble = "SB"; seat(e.bb_seat).bubble = "BB";
-        v.pot = e.sb + e.bb; break;
+        v.pot = e.sb + e.bb;
+        v.announcement = `${names[e.sb_seat]} ${e.sb_seat === 0 ? "post" : "posts"} ${e.sb} small blind · ${names[e.bb_seat]} ${e.bb_seat === 0 ? "post" : "posts"} ${e.bb} big blind`;
+        break;
       case "hole":
         seat(e.seat).cards = e.cards; break;
       case "action": {
         const s = seat(e.seat);
         v.acting = e.seat; s.bubble = label(e); v.pot = e.pot;
+        v.lastBet = e.amount > 0 ? e.seat : null;
+        if (e.amount > 0) v.actionNumber++;
+        if (e.amount > 0) v.streetBets[e.seat] = (v.streetBets[e.seat] ?? 0) + e.amount;
+        v.announcement = `${names[e.seat]} ${e.seat === 0 ? s.bubble.replace(/s\b/, "") : s.bubble} · pot ${e.pot}`;
+        if (e.stack != null && v.stacks) v.stacks[e.seat] = e.stack;
         if (e.all_in) s.allIn = true;
         break;
       }
       case "board":
-        v.board = e.board; break;
+        v.board = e.board; v.streetBets = {}; v.lastBet = null;
+        v.announcement = `${e.street[0].toUpperCase()}${e.street.slice(1)}: ${e.cards.join(" ")} · pot ${v.pot}`;
+        v.acting = null;
+        break;
       case "showdown":
-        v.hands = e.hands; v.acting = null;
+        v.hands = e.hands; v.bestFive = e.best_five ?? {}; v.acting = null;
+        v.announcement = `Showdown · ${Object.entries(e.hands).map(([i, hand]) => `${names[Number(i)]}: ${hand}`).join(" · ")}`;
         for (const s of Object.keys(e.reveals)) seat(Number(s)).cards = e.reveals[Number(s)];
         break;
       case "award":
         v.winners = e.winners; v.acting = null;
+        v.streetBets = {}; v.lastBet = null; v.pot = 0;
+        if (e.stacks) v.stacks = e.stacks.slice();
+        v.announcement = `${e.winners.map((w) => names[w]).join(" and ")} ${e.winners.length === 1 ? "wins" : "split"} the ${e.pot}-chip pot${e.winners.length === 1 && v.hands[e.winners[0]] ? ` with ${v.hands[e.winners[0]]}` : ""}`;
         for (const w of e.winners) seat(w).bubble = "wins"; break;
     }
   }
   return v;
+}
+
+function Chips({ amount, pot = false }: { amount: number; pot?: boolean }) {
+  if (amount <= 0) return null;
+  // Denominations are illustrative, while the adjacent label stays exact.
+  // Capping the drawn stack avoids overflowing the table on a big NL pot.
+  const count = Math.min(8, Math.max(1, Math.ceil(amount / 10)));
+  return (
+    <span className={`chips-visual${pot ? " pot-chips" : ""}`} aria-label={`${amount} chips`}>
+      <span className="chips-stack" aria-hidden="true">
+        {Array.from({ length: count }, (_, i) => <i key={i} />)}
+      </span>
+      <span className="chips-amount">{amount}</span>
+    </span>
+  );
 }
 
 function Seat({ view, index, name, kind, isYou, stack, compact }: {
@@ -84,12 +124,19 @@ function Seat({ view, index, name, kind, isYou, stack, compact }: {
     "seat", compact ? "compact" : "",
     view.acting === index ? "acting" : "",
     view.winners.includes(index) ? "winner" : "",
+    view.winners.length && view.hands[index] && !view.winners.includes(index) ? "lost-showdown" : "",
   ].join(" ");
   return (
     <div className={cls}>
+      {view.button === index && <span className="dealer-button" aria-label={`${name} has the dealer button`} title="Dealer button: acts last after the flop">D</span>}
       <div className={`bubble${s.bubble ? "" : " empty"}`}>{s.bubble || "·"}</div>
       <div className="hand">
-        {s.cards.length ? s.cards.map((c, i) => <CardView key={i} card={c} small />) : <><CardBack small /><CardBack small /></>}
+        {s.cards.length ? s.cards.map((c, i) => (
+          <span key={i} className={view.winners.length && view.hands[index]
+            ? view.bestFive[index]?.includes(c) ? "playing-card" : "unused-card" : ""}>
+            <CardView card={c} small />
+          </span>
+        )) : <><CardBack small /><CardBack small /></>}
       </div>
       <div className="seat-id">
         <Avatar kind={kind} size={compact ? 26 : 34} />
@@ -97,12 +144,23 @@ function Seat({ view, index, name, kind, isYou, stack, compact }: {
           <div className="name">{isYou ? "You" : name}{!isYou && <span className="tag"> (AI)</span>}</div>
           {stack != null && (
             <div className={`stack-chip${s.allIn ? " allin" : ""}`}>
-              {s.allIn && stack === 0 ? "ALL-IN" : `${stack} 🪙`}
+              <Chips amount={stack} />
+              <span>{s.allIn && stack === 0 ? "ALL-IN" : `${stack} chips`}</span>
             </div>
           )}
           {view.hands[index] && <div className="tag" style={{ fontSize: 12, color: "var(--muted)" }}>{view.hands[index]}</div>}
         </div>
       </div>
+      {(view.streetBets[index] ?? 0) > 0 && !view.winners.length && (
+        <div className={`seat-bet${view.lastBet === index ? " newly-bet" : ""}`}>
+          <Chips amount={view.streetBets[index]} />
+        </div>
+      )}
+      {view.winners.includes(index) && (
+        <span className="pot-pushed" aria-label="Pot pushed to winner" title="Pot pushed to winner">
+          <span aria-hidden="true">● ● ●</span> Pot awarded
+        </span>
+      )}
     </div>
   );
 }
@@ -160,21 +218,24 @@ function BetControls({ pending, busy, onRaise }: {
 
 // The felt + action row, shared by the standalone Play tab and the embedded lesson.
 function LiveTableBody({
-  view, names, kinds, players, stacks, done, busted, handsPlayed,
-  pending, busy, error, onDeal, onAct, onRaise, onRestart,
+  view, names, kinds, players, done, busted, handsPlayed,
+  pending, busy, error, onDeal, onAct, onRaise, onRestart, onSkip,
 }: {
   view: View; names: string[]; kinds: string[]; players: number;
-  stacks: number[] | null;
   done: InteractivePayload["done"]; busted: boolean; handsPlayed: number;
   pending: LivePending | null;
   busy: boolean; error: string | null;
   onDeal: () => void; onAct: (a: Action) => void; onRaise: (to: number) => void;
-  onRestart: () => void;
+  onRestart: () => void; onSkip: () => void;
 }) {
   const multiway = players > 2;
   const opponents = Array.from({ length: players - 1 }, (_, i) => i + 1);
   return (
     <>
+      <div className="play-announcement" role="status" aria-live="polite">
+        <span>{view.announcement}</span>
+        {busy && <button className="ghost" onClick={onSkip}>Skip to decision →</button>}
+      </div>
       <div className={`felt compact${multiway ? " multiway" : ""}`}>
         <TableFelt />
         <div className="felt-content">
@@ -182,20 +243,43 @@ function LiveTableBody({
             {opponents.map((seatIndex) => (
               <Seat key={seatIndex} view={view} index={seatIndex}
                 name={names[seatIndex]} kind={kinds[seatIndex]} isYou={false}
-                stack={stacks ? stacks[seatIndex] : null} compact={multiway} />
+                stack={view.stacks ? view.stacks[seatIndex] : null} compact={multiway} />
             ))}
           </div>
           <div className="board">
             {view.board.length
-              ? view.board.map((c, i) => <CardView key={i} card={c} small />)
+              ? view.board.map((c, i) => (
+                <span key={i} className={view.winners.length && Object.keys(view.bestFive).length
+                  ? view.winners.some((w) => view.bestFive[w]?.includes(c)) ? "playing-card" : "unused-card" : ""}>
+                  <CardView card={c} small />
+                </span>
+              ))
               : <span style={{ color: "#bfe9d0" }}>— preflop —</span>}
           </div>
-          <div className="pot">POT {view.pot}</div>
+          <div className="pot">POT {view.pot} <Chips amount={view.pot} pot /></div>
           <Seat view={view} index={0} name="You" kind="you" isYou={true}
-            stack={stacks ? stacks[0] : null} />
+            stack={view.stacks ? view.stacks[0] : null} />
+          {view.lastBet != null && (
+            <span key={view.actionNumber} className={`chip-flight flight-seat-${view.lastBet}`}
+              aria-hidden="true">●</span>
+          )}
+          {view.winners.map((seat) => (
+            <span key={`award-${seat}`} className={`chip-award flight-seat-${seat}`}
+              aria-hidden="true">●</span>
+          ))}
         </div>
       </div>
 
+      {view.winners.length > 0 && Object.keys(view.hands).length > 0 && (
+        <div className="showdown-summary">
+          {Object.entries(view.hands).map(([seat, hand]) => (
+            <div key={seat} className={view.winners.includes(Number(seat)) ? "showdown-winner" : "showdown-loser"}>
+              <b>{names[Number(seat)]}</b> — {hand}{view.winners.includes(Number(seat)) ? " · wins" : ""}
+            </div>
+          ))}
+          <small>Bright cards make the best five-card hand; dimmed cards don't play.</small>
+        </div>
+      )}
       <div className="play-actions">
         {busted ? (
           <div className="banner lose" style={{ flex: 1 }}>
@@ -277,15 +361,38 @@ export function LivePlay({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const skipRef = useRef(false);
 
   const table = opponents ?? [fixedOpponent ?? opponent];
   const names = ["You", ...table.map(opponentLabel)];
   const kinds = ["you", ...table];
 
-  function ingest(p: InteractivePayload, fresh: boolean) {
+  async function ingest(p: InteractivePayload, fresh: boolean) {
     if (p.error) { setError(p.error); return; }
     setError(null);
-    setView((v) => apply(fresh ? emptyView() : v, p.events));
+    setPending(null);
+    if (fresh) setView(emptyView());
+    // Engine responses can contain several opponent actions and an entire all-in
+    // runout. Show each meaningful event before allowing the next human decision.
+    // Hole-card events are displayed immediately; streets and actions hold long
+    // enough to read, even when the engine already finished the hand.
+    skipRef.current = false;
+    for (const event of p.events) {
+      setView((v) => apply(v, [event], names));
+      if (event.type === "hole") continue;
+      const delay = event.type === "board" || event.type === "showdown" || event.type === "award" ? 900 : 600;
+      if (!skipRef.current) {
+        await new Promise<void>((resolve) => {
+          const started = performance.now();
+          const timer = window.setInterval(() => {
+            if (skipRef.current || performance.now() - started >= delay) {
+              window.clearInterval(timer);
+              resolve();
+            }
+          }, 40);
+        });
+      }
+    }
     setPending(p.pending);
     setDone(p.done);
     setNet(p.net);
@@ -299,8 +406,8 @@ export function LivePlay({
   async function guard(fn: () => Promise<InteractivePayload>, fresh: boolean) {
     if (!bridgeRef.current || !ready || busy) return;
     setBusy(true);
-    try { ingest(await fn(), fresh); }
-    catch (e: any) { setError(e?.message ?? String(e)); }
+    try { await ingest(await fn(), fresh); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }
 
@@ -361,10 +468,11 @@ export function LivePlay({
 
   const body = started && (
     <LiveTableBody
-      view={view} names={names} kinds={kinds} players={players} stacks={stacks}
+      view={view} names={names} kinds={kinds} players={players}
       done={done} busted={busted} handsPlayed={hands}
       pending={pending} busy={busy} error={error}
       onDeal={deal} onAct={act} onRaise={raiseTo} onRestart={newMatch}
+      onSkip={() => { skipRef.current = true; }}
     />
   );
 

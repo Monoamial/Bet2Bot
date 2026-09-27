@@ -607,3 +607,123 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
   .app.embedded .main { grid-template-columns: 1fr; }
   .app.embedded .landing-tracks { grid-template-columns: 1fr; }
 }
+
+/* Live hand narration: every action/street is shown before play can continue. */
+.play-announcement {
+  margin-bottom: 8px; padding: 9px 12px; min-height: 38px;
+  background: var(--panel-2); border: 1px solid var(--border-strong);
+  border-radius: 8px; font-weight: 600; color: var(--text);
+}
+.seat.lost-showdown { opacity: 0.55; }
+.playing-card { display: inline-flex; border-radius: 8px; box-shadow: 0 0 0 2px var(--chip), 0 0 12px rgba(245,197,66,0.6); }
+.unused-card { display: inline-flex; opacity: 0.35; }
+.showdown-summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--border);
+}
+.showdown-winner { color: var(--chip); font-weight: 700; }
+.showdown-loser { color: var(--muted); }
+.showdown-summary small { width: 100%; color: var(--muted); }
+
+/* Chip piles explain sized bets without replacing the exact numeric amounts. */
+.stack-chip { display: inline-flex; align-items: center; gap: 5px; }
+.chips-visual { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; font-size: 11px; color: #fff0b4; }
+.chips-stack { display: inline-flex; flex-direction: column-reverse; align-items: center; min-width: 19px; height: 17px; justify-content: flex-start; }
+.chips-stack i {
+  display: block; width: 18px; height: 5px; margin-top: -2px;
+  border-radius: 50%; border: 1px solid #553713;
+  background: linear-gradient(90deg, #a36123, #f8dd81 35%, #d99a3a 70%, #8d491b);
+  box-shadow: 0 1px 1px rgba(0,0,0,.45);
+}
+.seat-bet { color: var(--chip); font-size: 11px; }
+.seat-bet.newly-bet .chips-visual { animation: chips-to-pot .55s ease-out; }
+.pot { display: inline-flex; align-items: center; gap: 6px; }
+.pot-chips .chips-stack { transform: scale(1.2); }
+@keyframes chips-to-pot { from { transform: translateY(-10px) scale(.8); opacity: .3; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+/* Six-handed seating follows a table arc, not a horizontal row. Dealer D rotates
+   with the blinds event, so seat position and button movement stay in sync. */
+.dealer-button {
+  position: absolute; top: -8px; right: -8px; z-index: 3;
+  display: grid; place-items: center; width: 24px; height: 24px;
+  border-radius: 50%; border: 2px solid #fef3ba;
+  background: #f1ca5d; color: #3c2c07; font: 900 13px/1 sans-serif;
+  box-shadow: 0 2px 5px #08130d;
+}
+.seat { position: relative; }
+.felt.multiway .felt-content { min-height: 420px; position: relative; padding: 0; }
+.felt.multiway .opp-row { display: contents; }
+.felt.multiway .seat { position: absolute; z-index: 2; min-width: 105px; }
+.felt.multiway .opp-row .seat { transform: translateX(-50%); }
+.felt.multiway .opp-row .seat:nth-child(1) { left: 9%; top: 40%; }
+.felt.multiway .opp-row .seat:nth-child(2) { left: 23%; top: 7%; }
+.felt.multiway .opp-row .seat:nth-child(3) { left: 50%; top: 3%; }
+.felt.multiway .opp-row .seat:nth-child(4) { left: 77%; top: 7%; }
+.felt.multiway .opp-row .seat:nth-child(5) { left: 91%; top: 40%; }
+.felt.multiway .felt-content > .seat { left: 50%; bottom: 1%; transform: translateX(-50%); }
+.felt.multiway .board { position: absolute; top: 48%; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.felt.multiway .pot { position: absolute; top: 67%; left: 50%; transform: translateX(-50%); }
+@media (max-width: 650px) {
+  .felt.multiway { overflow-x: auto; }
+  .felt.multiway .felt-content { min-width: 640px; }
+}
+.pot-pushed { font-size: 11px; font-weight: 700; color: var(--chip); animation: pot-to-winner .8s ease-out; }
+.pot-pushed span { color: #f0b947; text-shadow: 0 2px 2px #0b150f; }
+@keyframes pot-to-winner { from { transform: translateY(-18px) scale(.65); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .seat-bet.newly-bet .chips-visual, .pot-pushed { animation: none; }
+}
+.play-announcement { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.play-announcement .ghost { font-size: 12px; flex-shrink: 0; padding: 4px 7px; }
+/* Keep center pot above the player's bottom seat on 6-max. */
+.felt.multiway .board { top: 43%; }
+.felt.multiway .pot { top: 60%; }
+
+/* Standalone, repeatable scenario puzzles (A9). */
+.puzzles-wrap { width: min(100%, 820px); display: flex; flex-direction: column; gap: 14px; }
+.puzzle-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.puzzle-stats > span {
+  flex: 1 1 125px; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--panel-2); color: var(--muted); font-size: 13px;
+}
+.puzzle-stats b { color: var(--text); font-size: 18px; margin-left: 5px; }
+.puzzle-stats small.good { color: var(--accent); }
+.puzzle-stats small.bad { color: var(--danger); }
+.puzzle-topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.puzzle-topics button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); font: inherit; font-size: 13px; padding: 7px 10px; cursor: pointer;
+}
+.puzzle-topics button.on { border-color: var(--accent); color: var(--accent); }
+
+/* Animated chips travel from the acting seat to the pot, then from the pot to
+   awarded seat(s); numeric piles remain the source of truth throughout. */
+.felt-content { --pot-x: 50%; --pot-y: 57%; }
+.chip-flight, .chip-award {
+  pointer-events: none; position: absolute; z-index: 4; color: #ffdc6b;
+  font-size: 21px; line-height: 1; text-shadow: 0 1px 3px #1c200b;
+  --seat-x: 50%; --seat-y: 82%;
+}
+.felt-content .flight-seat-0 { --seat-x: 50%; --seat-y: 82%; }
+.felt-content .flight-seat-1 { --seat-x: 50%; --seat-y: 18%; }
+.chip-flight { animation: chip-flight .55s ease-in both; }
+.chip-award { animation: chip-award .8s ease-out both; }
+@keyframes chip-flight {
+  from { left: var(--seat-x); top: var(--seat-y); opacity: .9; transform: scale(1); }
+  to { left: var(--pot-x); top: var(--pot-y); opacity: 0; transform: scale(.6); }
+}
+@keyframes chip-award {
+  from { left: var(--pot-x); top: var(--pot-y); opacity: .9; transform: scale(1.3); }
+  to { left: var(--seat-x); top: var(--seat-y); opacity: 0; transform: scale(.65); }
+}
+.felt.multiway .felt-content { --pot-y: 60%; }
+.felt.multiway .flight-seat-0 { --seat-x: 50%; --seat-y: 87%; }
+.felt.multiway .flight-seat-1 { --seat-x: 9%; --seat-y: 47%; }
+.felt.multiway .flight-seat-2 { --seat-x: 23%; --seat-y: 21%; }
+.felt.multiway .flight-seat-3 { --seat-x: 50%; --seat-y: 18%; }
+.felt.multiway .flight-seat-4 { --seat-x: 77%; --seat-y: 21%; }
+.felt.multiway .flight-seat-5 { --seat-x: 91%; --seat-y: 47%; }
+@media (prefers-reduced-motion: reduce) {
+  .chip-flight, .chip-award { animation: none; display: none; }
+}

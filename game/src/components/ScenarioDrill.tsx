@@ -3,8 +3,9 @@
 // ScriptedHand, each spot allows exactly ONE attempt — pick, read why, move on — and
 // the run ends with a score + retry. Completing the drill (any score) unlocks Continue.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Lesson, Spot, SpotChoice } from "../academy/lessons";
+import { randomizeScenario } from "../academy/randomize";
 import { CardView, CardBack } from "./Card";
 import { Avatar } from "../assets/Avatar";
 import { ACTION_STYLE, Action } from "../strategy/model";
@@ -13,7 +14,7 @@ import { ACTION_STYLE, Action } from "../strategy/model";
 // correct answer isn't always the first button.
 const ACTION_ORDER: Action[] = ["fold", "check", "call", "raise"];
 
-function SpotView({ spot, picked, onPick }: {
+export function SpotView({ spot, picked, onPick }: {
   spot: Spot;
   picked: SpotChoice | null;
   onPick: (c: SpotChoice) => void;
@@ -68,16 +69,26 @@ function SpotView({ spot, picked, onPick }: {
   );
 }
 
+function makeDealSeed(): number {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    return crypto.getRandomValues(new Uint32Array(1))[0];
+  }
+  return (Date.now() ^ Math.floor(Math.random() * 0x1_0000_0000)) >>> 0;
+}
+
 export function ScenarioDrill({ lesson, onSolved }: {
   lesson: Extract<Lesson, { kind: "scenario" }>;
   onSolved: () => void;
 }) {
+  const [seed, setSeed] = useState(makeDealSeed);
+  // Keep the seeded deal fixed through every render/answer in this attempt.
+  const randomizedLesson = useMemo(() => randomizeScenario(lesson, seed), [lesson, seed]);
   const [index, setIndex] = useState(-1); // -1 = intro screen
   const [picked, setPicked] = useState<SpotChoice | null>(null);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
 
-  const total = lesson.spots.length;
+  const total = randomizedLesson.spots.length;
 
   function pick(c: SpotChoice) {
     if (picked) return;
@@ -96,6 +107,8 @@ export function ScenarioDrill({ lesson, onSolved }: {
   }
 
   function retry() {
+    const nextSeed = makeDealSeed();
+    setSeed(nextSeed === seed ? (seed + 1) >>> 0 : nextSeed);
     setIndex(0); setPicked(null); setScore(0); setFinished(false);
   }
 
@@ -128,14 +141,14 @@ export function ScenarioDrill({ lesson, onSolved }: {
     );
   }
 
-  const spot = lesson.spots[index];
+  const spot = randomizedLesson.spots[index];
   return (
     <div>
       <div className="drill-head">
         <span className="drill-progress">Spot {index + 1} of {total}</span>
         <span className="drill-running">✓ {score} correct</span>
       </div>
-      <SpotView key={index} spot={spot} picked={picked} onPick={pick} />
+      <SpotView key={`${seed}-${index}`} spot={spot} picked={picked} onPick={pick} />
       {picked && (
         <div className="drill-next">
           <button className="run" onClick={next}>

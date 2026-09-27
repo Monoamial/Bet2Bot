@@ -14,7 +14,7 @@
 //
 // Add content by appending lessons to a module, or a new module to MODULES.
 
-import { Action } from "../strategy/model";
+import type { Action } from "../strategy/model";
 
 export interface SpotChoice { action: Action; verdict: "good" | "ok" | "bad"; feedback: string }
 
@@ -265,7 +265,7 @@ const POSITION: Module = {
           hole: ["8h", "8c"], board: ["Qs", "6d", "2c"], pot: 4, toCall: 0,
           tag: "IN POSITION — they checked to you",
           situation:
-            "A pair of eights under one overcard. Your opponent checked. You act last — what's the move?",
+            "A pocket pair under one overcard. Your opponent checked. You act last — what's the move?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Yes. They showed weakness and your pair is likely best — bet, so ace-high and king-high pay to see the next card instead of catching it for free." },
@@ -277,22 +277,22 @@ const POSITION: Module = {
           hole: ["8h", "8c"], board: ["Qs", "6d", "2c"], pot: 4, toCall: 0,
           tag: "OUT OF POSITION — you act first",
           situation:
-            "Same eights, same board — but now you're first to act, with no idea where they stand. What's the move?",
+            "Same pocket pair, same board — but now you're first to act, with no idea where they stand. What's the move?",
           choices: [
             { action: "check", verdict: "good",
-              feedback: "Right. Out of position with a fragile pair, check — you learn what they do before building a pot you can't control. That's the whole lesson: same hand, different seat, different action." },
+              feedback: "Right. Out of position with a fragile pocket pair, check — you learn what they do before building a pot you can't control. That's the whole lesson: same hand, different seat, different action." },
             { action: "raise", verdict: "ok",
-              feedback: "Defensible, but you're betting into the dark — if they raise, an eight-pair hates its life. Checking first to act keeps the pot small while you're unsure." },
+              feedback: "Defensible, but you're betting into the dark — if they raise, a small pair hates its life. Checking first to act keeps the pot small while you're unsure." },
           ],
         },
         {
           hole: ["6d", "5d"], board: ["Ks", "9d", "4c"], pot: 4, toCall: 0,
           tag: "IN POSITION — they checked to you",
           situation:
-            "You have nothing — six-high. But your opponent just checked, and you act last. What's the move?",
+            "You have no pair — just a high-card hand. But your opponent just checked, and you act last. What's the move?",
           choices: [
             { action: "raise", verdict: "good",
-              feedback: "Good. They advertised weakness and you close the street — a bet here takes the pot down often enough to profit even with six-high. Bluffing works best in position." },
+              feedback: "Good. They advertised weakness and you close the street — a bet here takes the pot down often enough to profit even with no pair. Bluffing works best in position." },
             { action: "check", verdict: "ok",
               feedback: "Fine — a free card costs nothing. But notice the opportunity: after they check, a position bluff at this small pot prints money over time." },
           ],
@@ -301,19 +301,19 @@ const POSITION: Module = {
           hole: ["6d", "5d"], board: ["Ks", "9d", "4c"], pot: 4, toCall: 0,
           tag: "OUT OF POSITION — you act first",
           situation:
-            "Same six-high, same board — but you act first. Still feel like bluffing?",
+            "Same unpaired hand, same board — but you act first. Still feel like bluffing?",
           choices: [
             { action: "check", verdict: "good",
               feedback: "Correct. Bluffing into a player who hasn't told you anything is burning chips — they could be sitting on top pair. Out of position, give up cheap with air." },
             { action: "raise", verdict: "bad",
-              feedback: "That's a bluff into the unknown — when it gets called or raised you've torched chips with six-high. The exact same bluff was good IN position, after they checked. Seat first, then action." },
+              feedback: "That's a bluff into the unknown — when it gets called or raised you've torched chips with a weak high-card hand. The exact same bluff was good IN position, after they checked. Seat first, then action." },
           ],
         },
         {
           hole: ["Ts", "9s"], board: ["8s", "7d", "2c", "Kh"], pot: 8, toCall: 0,
           tag: "IN POSITION — they checked to you",
           situation:
-            "Turn. You have an open-ended straight draw (any six or jack completes it) but no made hand yet. They checked. What's the move?",
+            "Turn. You have an open-ended straight draw with eight river cards that complete it, but no made hand yet. They checked. What's the move?",
           choices: [
             { action: "check", verdict: "good",
               feedback: "Nice — the free card is position's gift. You get to see the river for nothing with eight cards that make you a straight; no need to risk chips." },
@@ -325,7 +325,7 @@ const POSITION: Module = {
           hole: ["Kd", "Kc"], board: ["9d", "5c", "2s"], pot: 4, toCall: 0,
           tag: "OUT OF POSITION — you act first",
           situation:
-            "Kings — an overpair to this raggedy board. You act first. Does being out of position change anything?",
+            "A pocket pair is an overpair to this raggedy board. You act first. Does being out of position change anything?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Exactly. Position flips MARGINAL decisions — this isn't one. Strong hands bet from any seat: charge worse pairs and draws now." },
@@ -418,7 +418,7 @@ const VALUE_BETTING: Module = {
           hole: ["7h", "7d"], board: ["7s", "Kd", "2c"], pot: 4, toCall: 0,
           tag: "FLOP vs a calling station — they checked",
           situation:
-            "You flopped three sevens — a monster. Tempting to act weak and 'trap'… but against a station, what's right?",
+            "You flopped a set — a monster. Tempting to act weak and 'trap'… but against a station, what's right?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Right. Slowplaying exists to keep weak hands in the pot — a station stays in anyway! Start building the pot now: bet flop, turn, and river." },
@@ -514,7 +514,7 @@ const DISCIPLINE: Module = {
           hole: ["Jd", "8c"], board: [], pot: 3, toCall: 1,
           tag: "PREFLOP on the button — the Shark folds a lot",
           situation:
-            "Jack-eight offsuit — mediocre. But you're on the button, and this opponent folds most hands to a raise. What's the move?",
+            "A middling offsuit hand. But you're on the button, and this opponent folds most hands to a raise. What's the move?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Steal! Against someone who folds a lot, a wide button raise prints chips even when your cards are nothing special. Aggression targets their WEAKNESS, not your strength." },
@@ -542,14 +542,14 @@ const DISCIPLINE: Module = {
           hole: ["9s", "9d"], board: ["9h", "6s", "2d"], pot: 6, toCall: 2,
           tag: "FLOP — the Shark bet into you",
           situation:
-            "You flopped three nines and the Shark bets. Discipline means folding one pair to aggression… is this that?",
+            "You flopped a set and the Shark bets. Discipline means folding one pair to aggression… is this that?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "No — discipline is for MARGINAL hands. Three of a kind is a monster: raise for value while it likes its overpair or top pair. Fold one pair; raise real hands." },
             { action: "call", verdict: "ok",
               feedback: "You could trap a street, but in Limit the pot grows by fixed bets — start charging now. Two more streets of value beat one." },
             { action: "fold", verdict: "bad",
-              feedback: "That's not discipline, that's panic. You have three nines — the Shark's 'strength' is exactly what pays you off here." },
+              feedback: "That's not discipline, that's panic. You have a set — the Shark's 'strength' is exactly what pays you off here." },
           ],
         },
         {

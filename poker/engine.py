@@ -19,7 +19,7 @@ from poker.action import (
     CALL, CHECK, FOLD, RAISE, is_legal, legal_actions, parse_action, sanitize,
 )
 from poker.cards import Card, Deck
-from poker.evaluator import category_name, evaluate
+from poker.evaluator import best_five, category_name, evaluate
 from poker.state import STREETS, GameState, HandSummary
 
 # Sentinel for "no stack limit": large enough that no legal sequence of Limit or
@@ -393,7 +393,9 @@ def play_hand_gen(
                  f"-> {category_name(scores[s])}")
         ev({"type": "showdown", "board": [str(c) for c in board],
             "reveals": {s: [str(c) for c in hole[s]] for s in survivors},
-            "hands": {s: category_name(scores[s]) for s in survivors}})
+            "hands": {s: category_name(scores[s]) for s in survivors},
+            "best_five": {s: [str(c) for c in best_five(hole[s] + board)]
+                          for s in survivors}})
 
         # Layer the pot by survivor contribution levels (side pots). With no
         # all-ins every survivor contributed the max level, so this is one pot.

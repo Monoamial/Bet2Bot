@@ -33,7 +33,12 @@ watcher in `game/vite.config.ts`). Outside dev, run `npm run bundle-engine`.
    - `play_hand` — batch play with bots (the Campaign, via `run_match`).
    - `InteractiveMatch` (`poker/interactive.py`) — human in one seat (Play / Academy).
 5. `play_hand_gen` emits a JSON-able **event stream** (blinds/hole/action/board/showdown/
-   award) used for animated replays (Campaign) and live rendering (Play).
+   award) used for animated replays (Campaign) and live rendering (Play). Showdown
+   events also carry `best_five` (the exact five playing cards per revealed seat), so
+   live play can highlight winning cards and explain the hand category alongside losers.
+   `LivePlay` presents the event stream **one event at a time** (with Skip to decision),
+   including blinds, per-street runout, chips/bet stacks, and pot awards; keep human
+   input gated until playback reaches a decision.
 6. Campaign results are multi-output: `run_match(curate=K)` keeps the player's K biggest
    wins/losses as **curated replays** (bounded-memory top-K heaps), and `run_level`
    returns the bankroll **timeline** that `WinningsGraph.tsx` animates, plus richer
@@ -52,14 +57,20 @@ fixed-stack roll: seat 0 carries one stack until bust or the hand cap; opponents
 `InteractiveMatch` takes a *list* of opponents (multiway), `stack=`, and `carry=`
 (survival). The Play tab (`GameModes.tsx`) exposes these as **game modes** — Classic
 Limit (default, introductory), No-Limit heads-up (bet slider in `LivePlay.tsx`),
-Survival, and a 6-max Limit table. One documented simplification: ANY raise reopens
+Survival, and a 6-max Limit table with seats around the felt and the dealer button
+rotating. One documented simplification: ANY raise reopens
 action (no special under-raise all-in rule).
 
 The **Academy** (Learn tab) is data-driven from `game/src/academy/lessons.ts`: MODULES of
 lessons (read / quiz / hand / **scenario drill** / live play / bridge), rendered by
 `Academy.tsx` with per-module progress in localStorage. Scenario drills
-(`ScenarioDrill.tsx`) serve one-attempt decision spots with a score. Play lessons can pin
-the dealer button (`InteractiveMatch(fixed_button=...)`) for in/out-of-position drills.
+(`ScenarioDrill.tsx`) serve one-attempt decision spots with a score. Three scenario
+lessons use curated rank-changing variants (`academy/randomize.ts`); pairs that teach
+position share the same deal, and one attempt keeps its cards until Retry. The
+standalone Puzzles tab uses the same safe templates, with a local practice rating and
+streak (`b2b.puzzles.v1`). This is a practice score, **not** calibrated Elo. Play
+lessons can pin the dealer button (`InteractiveMatch(fixed_button=...)`) for
+in/out-of-position drills.
 
 ## Conventions
 - **Teaching project** → favor readable, well-commented code over cleverness.

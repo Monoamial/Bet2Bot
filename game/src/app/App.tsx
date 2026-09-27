@@ -5,6 +5,7 @@ import type { LevelResult } from "../engine-api/types";
 import { Academy } from "../components/Academy";
 import { Landing } from "../components/Landing";
 import { GameModes } from "../components/GameModes";
+import { Puzzles } from "../components/Puzzles";
 import { LessonPanel } from "../components/LessonPanel";
 import { LevelSelect } from "../components/LevelSelect";
 import { StrategyBuilder } from "../components/StrategyBuilder";
@@ -22,7 +23,7 @@ const LS = {
   },
 };
 
-type View = "home" | "learn" | "play" | "campaign";
+type View = "home" | "learn" | "puzzles" | "play" | "campaign";
 
 export function App() {
   const bridgeRef = useRef<EngineBridge | null>(null);
@@ -97,12 +98,13 @@ export function App() {
         </h1>
         <div className="nav">
           <button className={view === "learn" ? "on" : ""} onClick={() => setView("learn")}>Learn</button>
+          <button className={view === "puzzles" ? "on" : ""} onClick={() => setView("puzzles")}>Puzzles</button>
           <button className={view === "play" ? "on" : ""} onClick={() => setView("play")}>Play</button>
           <button className={view === "campaign" ? "on" : ""} onClick={() => setView("campaign")}>Campaign</button>
         </div>
         {view !== "home" && (
           <span className="level-pill">
-            {view === "learn" ? "Academy" : view === "play" ? "Game modes" : level.title}
+            {view === "learn" ? "Academy" : view === "puzzles" ? "Practice" : view === "play" ? "Game modes" : level.title}
           </span>
         )}
         <div className="spacer" />
@@ -117,6 +119,8 @@ export function App() {
         <div className="learn-wrap">
           <Academy onStart={startCampaign} bridgeRef={bridgeRef} ready={ready} />
         </div>
+      ) : view === "puzzles" ? (
+        <div className="learn-wrap"><Puzzles /></div>
       ) : view === "play" ? (
         <div className="learn-wrap">
           <div style={{ width: "100%", maxWidth: 820 }}>

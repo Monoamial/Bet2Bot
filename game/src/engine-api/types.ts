@@ -6,7 +6,7 @@ export type PokerEvent =
   | { type: "hole"; seat: number; cards: [string, string] }
   | { type: "action"; seat: number; street: string; action: string; amount: number; pot: number; to_call: number; explain?: string | null; raise_to?: number; all_in?: boolean; stack?: number }
   | { type: "board"; street: string; cards: string[]; board: string[] }
-  | { type: "showdown"; board: string[]; reveals: Record<number, string[]>; hands: Record<number, string> }
+  | { type: "showdown"; board: string[]; reveals: Record<number, string[]>; hands: Record<number, string>; best_five?: Record<number, string[]> }
   | { type: "award"; winners: number[]; pot: number; net: number[]; pots?: { amount: number; winners: number[] }[]; stacks?: number[] };
 
 export interface BotSummaryRow {

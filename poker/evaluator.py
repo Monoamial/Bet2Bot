@@ -95,6 +95,13 @@ def evaluate(cards: List[Card]) -> Score:
     return max(_score_5(list(combo)) for combo in combinations(cards, 5))
 
 
+def best_five(cards: List[Card]) -> List[Card]:
+    """The five cards that play, in dealt order (one deterministic choice on ties)."""
+    if len(cards) < 5:
+        raise ValueError("need at least 5 cards to evaluate")
+    return list(max(combinations(cards, 5), key=lambda combo: _score_5(list(combo))))
+
+
 def category_name(score: Score) -> str:
     """Human-readable name for a score's hand category (for logging)."""
     return CATEGORY_NAMES[score[0]]
