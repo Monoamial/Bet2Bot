@@ -216,8 +216,9 @@ function seededRandom(seed: DealSeed): () => number {
 
 function assertValidSpot(spot: Spot, lessonId: string, index: number): void {
   const cards = [...spot.hole, ...spot.board];
-  if (spot.hole.length !== 2 || spot.board.length > 5 || cards.length > 7) {
-    throw new Error(`Invalid card count in ${lessonId} spot ${index + 1}`);
+  const validBoardLength = [0, 3, 4, 5].includes(spot.board.length);
+  if (spot.hole.length !== 2 || !validBoardLength || cards.length > 7) {
+    throw new Error(`Invalid card or board count in ${lessonId} spot ${index + 1}`);
   }
   for (const card of cards) {
     if (!/^[2-9TJQKA][shdc]$/.test(card)) {

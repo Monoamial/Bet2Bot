@@ -25,12 +25,19 @@ export interface SizingSpot {
 }
 
 // One served decision spot inside a scenario drill.
+export type SpotOpponent = "Caller" | "Shark" | "Rock" | "River Bluffer" | "Over-folder" | "Trapper";
+export type SpotPosition = "in-position" | "out-of-position";
+
 export interface Spot {
   hole: [string, string];
   board: string[];
   pot: number;
   toCall: number;
-  tag: string;        // context badge on the felt, e.g. "IN POSITION — you act last"
+  opponent?: SpotOpponent; // named opponent, only when the spot specifies one
+  position?: SpotPosition; // relative position on the current street, when known
+  seat?: "button";         // explicit seat assignment, e.g. a preflop steal spot
+  stack?: number;          // present only when the scenario specifies a stack
+  tag: string;              // context badge on the felt, e.g. "IN POSITION — you act last"
   situation: string;
   choices: SpotChoice[];
 }
@@ -311,30 +318,33 @@ const POSITION: Module = {
       spots: [
         {
           hole: ["8h", "8c"], board: ["Qs", "6d", "2c"], pot: 4, toCall: 0,
+          position: "in-position",
           tag: "IN POSITION — they checked to you",
           situation:
             "A pocket pair under one overcard. Your opponent checked. You act last — what's the move?",
           choices: [
             { action: "raise", verdict: "good",
-              feedback: "Yes. They showed weakness and your pair is likely best — bet, so ace-high and king-high pay to see the next card instead of catching it for free." },
+              feedback: "Yes. They showed weakness, and your pair may still be ahead. A bet can deny a free card and get called by worse hands." },
             { action: "check", verdict: "ok",
               feedback: "Safe, but you're letting overcards peel a free card. When they check to you in position, a modest hand like this usually wants to bet." },
           ],
         },
         {
           hole: ["8h", "8c"], board: ["Qs", "6d", "2c"], pot: 4, toCall: 0,
+          position: "out-of-position",
           tag: "OUT OF POSITION — you act first",
           situation:
-            "Same pocket pair, same board — but now you're first to act, with no idea where they stand. What's the move?",
+            "Your pocket pair is below the board's high card. You act first without knowing where they stand. What's the move?",
           choices: [
             { action: "check", verdict: "good",
-              feedback: "Right. Out of position with a fragile pocket pair, check — you learn what they do before building a pot you can't control. That's the whole lesson: same hand, different seat, different action." },
+              feedback: "Right. Out of position with a fragile pocket pair, check — you learn what they do before building a pot you can't control. Checking first keeps the pot small while you're unsure." },
             { action: "raise", verdict: "ok",
               feedback: "Defensible, but you're betting into the dark — if they raise, a small pair hates its life. Checking first to act keeps the pot small while you're unsure." },
           ],
         },
         {
           hole: ["6d", "5d"], board: ["Ks", "9d", "4c"], pot: 4, toCall: 0,
+          position: "in-position",
           tag: "IN POSITION — they checked to you",
           situation:
             "You have no pair — just a high-card hand. But your opponent just checked, and you act last. What's the move?",
@@ -347,18 +357,20 @@ const POSITION: Module = {
         },
         {
           hole: ["6d", "5d"], board: ["Ks", "9d", "4c"], pot: 4, toCall: 0,
+          position: "out-of-position",
           tag: "OUT OF POSITION — you act first",
           situation:
-            "Same unpaired hand, same board — but you act first. Still feel like bluffing?",
+            "You have no pair on this flop. You act first without knowing where the opponent stands. Still feel like bluffing?",
           choices: [
             { action: "check", verdict: "good",
               feedback: "Correct. Bluffing into a player who hasn't told you anything is burning chips — they could be sitting on top pair. Out of position, give up cheap with air." },
             { action: "raise", verdict: "bad",
-              feedback: "That's a bluff into the unknown — when it gets called or raised you've torched chips with a weak high-card hand. The exact same bluff was good IN position, after they checked. Seat first, then action." },
+              feedback: "That's a bluff into the unknown — when it gets called or raised you've torched chips with a weak high-card hand. Out of position, avoid bluffing before the opponent has shown weakness." },
           ],
         },
         {
           hole: ["Ts", "9s"], board: ["8s", "7d", "2c", "Kh"], pot: 8, toCall: 0,
+          position: "in-position",
           tag: "IN POSITION — they checked to you",
           situation:
             "Turn. You have an open-ended straight draw with eight river cards that complete it, but no made hand yet. They checked. What's the move?",
@@ -371,9 +383,10 @@ const POSITION: Module = {
         },
         {
           hole: ["Kd", "Kc"], board: ["9d", "5c", "2s"], pot: 4, toCall: 0,
+          position: "out-of-position",
           tag: "OUT OF POSITION — you act first",
           situation:
-            "A pocket pair is an overpair to this raggedy board. You act first. Does being out of position change anything?",
+            "You have an overpair on the flop. You act first. Does being out of position change anything?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Exactly. Position flips MARGINAL decisions — this isn't one. Strong hands bet from any seat: charge worse pairs and draws now." },
@@ -452,18 +465,20 @@ const VALUE_BETTING: Module = {
       spots: [
         {
           hole: ["Ad", "Jc"], board: ["Jh", "8s", "3d", "6c", "2h"], pot: 12, toCall: 0,
+          opponent: "Caller",
           tag: "RIVER vs a calling station — they checked",
           situation:
             "Top pair, top kicker on the river. The station checks. Last chance to act — what's the move?",
           choices: [
             { action: "raise", verdict: "good",
-              feedback: "Yes — this is THE value bet. It will call with worse pairs, even ace-high. Checking back top pair against a station is leaving money on the table." },
+              feedback: "Yes — this is THE value bet. It will call with worse pairs and high-card hands. Checking back top pair against a station is leaving money on the table." },
             { action: "check", verdict: "bad",
               feedback: "You just skipped your last chance to charge a player who calls with anything. Against a station, good hands bet the river — always." },
           ],
         },
         {
           hole: ["7h", "7d"], board: ["7s", "Kd", "2c"], pot: 4, toCall: 0,
+          opponent: "Caller",
           tag: "FLOP vs a calling station — they checked",
           situation:
             "You flopped a set — a monster. Tempting to act weak and 'trap'… but against a station, what's right?",
@@ -476,9 +491,10 @@ const VALUE_BETTING: Module = {
         },
         {
           hole: ["Ah", "Qh"], board: ["9h", "6h", "2s", "Jc", "4d"], pot: 10, toCall: 0,
-          tag: "RIVER vs a calling station — your flush draw missed",
+          opponent: "Caller",
+          tag: "RIVER vs a calling station — your draw missed",
           situation:
-            "Your flush draw bricked — you have ace-high. The station checks the river to you. Bluff it?",
+            "Your draw missed and you have no pair. The station checks the river to you. Bluff it?",
           choices: [
             { action: "check", verdict: "good",
               feedback: "Correct. You cannot bluff someone who doesn't fold — it calls with any pair and beats you. Check, lose the minimum, move on." },
@@ -488,6 +504,7 @@ const VALUE_BETTING: Module = {
         },
         {
           hole: ["Kc", "Th"], board: ["Ts", "8d", "3c", "2h"], pot: 8, toCall: 2,
+          opponent: "Caller",
           tag: "TURN vs a calling station — it suddenly BET",
           situation:
             "You have top pair. The station — who almost never bets, only calls — suddenly bets into you. What now?",
@@ -502,6 +519,7 @@ const VALUE_BETTING: Module = {
         },
         {
           hole: ["Qd", "Js"], board: ["Qc", "Jd", "5h", "8s"], pot: 8, toCall: 0,
+          opponent: "Caller",
           tag: "TURN vs a calling station — they checked",
           situation:
             "Top two pair on the turn; the station checks. You already bet the flop and got called. Keep going?",
@@ -560,9 +578,11 @@ const DISCIPLINE: Module = {
       spots: [
         {
           hole: ["Jd", "8c"], board: [], pot: 3, toCall: 1,
+          opponent: "Shark",
+          seat: "button",
           tag: "PREFLOP on the button — the Shark folds a lot",
           situation:
-            "A middling offsuit hand. But you're on the button, and this opponent folds most hands to a raise. What's the move?",
+            "A non-premium starting hand. You're on the button, and this opponent folds most hands to a raise. What's the move?",
           choices: [
             { action: "raise", verdict: "good",
               feedback: "Steal! Against someone who folds a lot, a wide button raise prints chips even when your cards are nothing special. Aggression targets their WEAKNESS, not your strength." },
@@ -574,6 +594,7 @@ const DISCIPLINE: Module = {
         },
         {
           hole: ["Kh", "Qd"], board: ["Qs", "9c", "4d", "7h"], pot: 10, toCall: 4,
+          opponent: "Shark",
           tag: "TURN — the tight Shark RAISED your bet",
           situation:
             "Top pair, good kicker. You bet the turn and the Shark raised. This player doesn't raise without a real hand. Now what?",
@@ -588,6 +609,7 @@ const DISCIPLINE: Module = {
         },
         {
           hole: ["9s", "9d"], board: ["9h", "6s", "2d"], pot: 6, toCall: 2,
+          opponent: "Shark",
           tag: "FLOP — the Shark bet into you",
           situation:
             "You flopped a set and the Shark bets. Discipline means folding one pair to aggression… is this that?",
@@ -602,14 +624,15 @@ const DISCIPLINE: Module = {
         },
         {
           hole: ["Ac", "8d"], board: ["Kd", "Ts", "6h", "3c", "Qh"], pot: 12, toCall: 4,
+          opponent: "Shark",
           tag: "RIVER — the Shark bets again",
           situation:
-            "You called down with ace-high hoping to pair. The river bricks and the Shark bets a third time. It's 'only' 4 more chips into a pot of 12…",
+            "You called down with no pair, hoping to improve. The river didn't help, and the Shark bets a third time. It's 'only' 4 more chips into a pot of 12…",
           choices: [
             { action: "fold", verdict: "good",
-              feedback: "Right. Pot odds tempt you, but a tight player betting three streets has you crushed — ace-high wins here almost never. 'Only 4 chips' three times a session is your whole win rate." },
+              feedback: "Right. Pot odds tempt you, but a tight player betting three streets has you crushed — a high-card hand wins here almost never. 'Only 4 chips' three times a session is your whole win rate." },
             { action: "call", verdict: "bad",
-              feedback: "The classic payoff. Each call is small; the habit is enormous. Against three barrels from a tight player, ace-high is a fold, full stop." },
+              feedback: "The classic payoff. Each call is small; the habit is enormous. Against three barrels from a tight player, a high-card hand is a fold, full stop." },
           ],
         },
       ],
@@ -750,8 +773,9 @@ const HAND_READING: Module = {
       spots: [
         {
           hole: ["9h", "9c"], board: ["As", "Kd", "4c"], pot: 8, toCall: 2,
+          opponent: "Rock",
           tag: "FLOP — the Rock raised preflop, then bet",
-          situation: "Your pocket pair was decent before the flop; now two overcards appear. The Rock's narrow opening range contains many big aces and kings. What's the low-cost response?",
+          situation: "Your pocket pair was decent before the flop; now two higher board cards appear. The Rock's narrow opening range contains many strong hands. What's the low-cost response?",
           choices: [
             { action: "fold", verdict: "good", feedback: "A tight range plus two overcards and a continuation bet spells trouble. It's okay to release a hand that was playable preflop." },
             { action: "call", verdict: "ok", feedback: "One cheap call might be defensible, but you're mostly hoping the Rock bluffed with two unpaired cards — not its usual line." },
@@ -760,18 +784,20 @@ const HAND_READING: Module = {
         },
         {
           hole: ["8h", "8d"], board: ["Kc", "7s", "3h", "2d", "6c"], pot: 12, toCall: 4,
-          tag: "RIVER — the River Bluffer bets a missed board",
-          situation: "You have a small pocket pair. This opponent bets river high-card hands instead of giving up. It fires again on a dry board. What does your pair do against that bluff-heavy range?",
+          opponent: "River Bluffer",
+          tag: "RIVER — the River Bluffer bets again",
+          situation: "You have a pocket pair. This opponent bets river high-card hands instead of giving up, then fires again. What does your pair do against that bluff-heavy range?",
           choices: [
-            { action: "call", verdict: "good", feedback: "Bluff-catch. A small pair beats all the unpaired hands this opponent turns into river bets. You don't need a monster to call a frequent bluffer." },
+            { action: "call", verdict: "good", feedback: "Bluff-catch. Your pair beats high-card bluffs, and this opponent often turns missed hands into river bets. You don't need a monster to call a frequent bluffer." },
             { action: "fold", verdict: "bad", feedback: "If you fold every pair, its no-pair river bluff succeeds too often. Their tendency makes a modest pair worth calling." },
             { action: "raise", verdict: "ok", feedback: "Your pair beats its bluffs already. Raising can make worse hands fold and get called by stronger ones; call to keep its bluff in." },
           ],
         },
         {
           hole: ["Qs", "Js"], board: ["8h", "4d", "2c", "9s"], pot: 10, toCall: 0,
+          opponent: "Over-folder",
           tag: "TURN — the Over-folder checks to you",
-          situation: "You have only queen-high. The Over-folder releases weak pairs when facing pressure and has checked twice. Can you make its range fold?",
+          situation: "You have not made a pair. The Over-folder releases weak pairs when facing pressure and has checked twice. Can you make its range fold?",
           choices: [
             { action: "raise", verdict: "good", feedback: "Target the tendency, not your hole cards. This player over-folds to bets — pressure wins pots without a showdown." },
             { action: "check", verdict: "ok", feedback: "Free cards are safe, but this is a missed steal against an opponent whose range gives up too much." },
@@ -779,6 +805,7 @@ const HAND_READING: Module = {
         },
         {
           hole: ["Ac", "Jc"], board: ["As", "7h", "2d", "6s"], pot: 12, toCall: 4,
+          opponent: "Trapper",
           tag: "TURN — the Trapper checked, then raised",
           situation: "Top pair felt good. But the Trapper checked a street, then raised your turn bet. It saves raises for three of a kind or better. What changed?",
           choices: [
@@ -851,6 +878,7 @@ const BOARD_TEXTURE: Module = {
       spots: [
         {
           hole: ["Kh", "Qd"], board: ["Kc", "7s", "2h"], pot: 6, toCall: 0,
+          opponent: "Caller",
           tag: "DRY FLOP — the Caller checks",
           situation: "Top pair with a good kicker on a disconnected, rainbow board. The Caller checks and will pay off worse hands. What should you do?",
           choices: [
@@ -860,6 +888,7 @@ const BOARD_TEXTURE: Module = {
         },
         {
           hole: ["As", "Jd"], board: ["Jh", "Th", "9h"], pot: 12, toCall: 4,
+          opponent: "Shark",
           tag: "WET FLOP — the Shark raises",
           situation: "Top pair with no heart in your hand. The flop has three connected hearts and the tight Shark raised. How does the board change your one-pair hand?",
           choices: [
@@ -870,6 +899,7 @@ const BOARD_TEXTURE: Module = {
         },
         {
           hole: ["Kc", "Kd"], board: ["Ks", "8h", "2h", "Jh"], pot: 10, toCall: 0,
+          opponent: "Caller",
           tag: "TURN — a third heart appears",
           situation: "You have three kings. A heart arrives, but the Caller checks and calls with lots of worse pairs. Does one scary card force a check?",
           choices: [
@@ -879,6 +909,7 @@ const BOARD_TEXTURE: Module = {
         },
         {
           hole: ["Ac", "Ad"], board: ["Kh", "7h", "2c", "Jh", "4h"], pot: 16, toCall: 4,
+          opponent: "Shark",
           tag: "RIVER — four hearts, no heart in your hand",
           situation: "Your pocket aces were strong preflop. Four hearts are now on the board and the tight Shark bets the river. What does your hand really beat?",
           choices: [

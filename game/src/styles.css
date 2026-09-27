@@ -576,7 +576,7 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 }
 .landing-go:hover { background: var(--accent); }
 
-.landing-tracks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.landing-tracks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 720px) { .landing-tracks { grid-template-columns: 1fr; } }
 .landing-track {
   font: inherit; text-align: left; cursor: pointer;
@@ -770,3 +770,9 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 .breakdown-group > b { font-size: 13px; }
 .good-net { color: var(--accent); }
 .bad-net { color: var(--danger); }
+
+/* Shared decision facts for Academy drills and the Puzzles tab. Only fields
+   actually present in each authored spot are displayed; no invented stack. */
+.puzzle-facts { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }
+.puzzle-facts > span { border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); padding: 5px 8px; border-radius: 5px; font-size: 12px; }
+.puzzle-facts b { color: var(--text); }

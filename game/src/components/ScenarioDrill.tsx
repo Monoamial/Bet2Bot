@@ -40,6 +40,17 @@ export function SpotView({ spot, picked, onPick }: {
         </div>
       </div>
 
+      <div className="puzzle-facts" aria-label="Decision facts">
+        <span>Street <b>{spot.board.length === 0 ? "Preflop" : spot.board.length === 3 ? "Flop" : spot.board.length === 4 ? "Turn" : "River"}</b></span>
+        {spot.opponent && <span>Opponent <b>{spot.opponent}</b></span>}
+        {spot.position && <span>Position <b>{spot.position === "in-position" ? "In position" : "Out of position"}</b></span>}
+        {spot.seat && <span>Seat <b>{spot.seat === "button" ? "Button" : spot.seat}</b></span>}
+        {spot.stack != null && <span>Your stack <b>{spot.stack} chips</b></span>}
+        <span>Pot <b>{spot.pot} chips</b></span>
+        <span>To call <b>{spot.toCall} chips</b></span>
+        <span>Options shown <b>{[...spot.choices].sort((a, b) => ACTION_ORDER.indexOf(a.action) - ACTION_ORDER.indexOf(b.action))
+          .map((choice) => ACTION_STYLE[choice.action].label).join(" · ")}</b></span>
+      </div>
       <p className="scripted-situation">{spot.situation}</p>
 
       <div className="scripted-choices">
