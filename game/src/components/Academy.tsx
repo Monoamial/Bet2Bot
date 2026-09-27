@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import type { MutableRefObject } from "react";
 import { MODULES, Lesson, Module } from "../academy/lessons";
+import { attemptStars, bestStars } from "../academy/mastery";
 import { HandRankChart } from "./HandRankChart";
 import { ScriptedHand } from "./ScriptedHand";
 import { ScenarioDrill } from "./ScenarioDrill";
@@ -15,6 +16,16 @@ import type { EngineBridge } from "../pyodide/bridge";
 
 // --- persisted progress: moduleId -> number of lessons completed (A8) -------------
 const PROGRESS_KEY = "b2b.academy.progress";
+const MASTERY_KEY = "b2b.academy.mastery";
+type Mastery = Record<string, number>;
+
+function loadMastery(): Mastery {
+  try { return JSON.parse(localStorage.getItem(MASTERY_KEY) ?? "{}"); }
+  catch { return {}; }
+}
+function saveMastery(value: Mastery) {
+  try { localStorage.setItem(MASTERY_KEY, JSON.stringify(value)); } catch { /* ignore */ }
+}
 
 function loadProgress(): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? "{}"); }
@@ -26,20 +37,21 @@ function saveProgress(p: Record<string, number>) {
 
 function QuizView({ lesson, onSolved }: {
   lesson: Extract<Lesson, { kind: "quiz" }>;
-  onSolved: () => void;
+  onSolved: (stars: number) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
+  const [mistakes, setMistakes] = useState(0);
   const chosen = picked === null ? null : lesson.options[picked];
   return (
     <div>
       {lesson.compare && (
         <div className="quiz-compare">
           <div>
-            <div className="quiz-label">Hand A</div>
+            <div className="quiz-label">{lesson.compare.labelA ?? "Hand A"}</div>
             <div className="hand">{lesson.compare.a.map((c, i) => <CardView key={i} card={c} small />)}</div>
           </div>
           <div>
-            <div className="quiz-label">Hand B</div>
+            <div className="quiz-label">{lesson.compare.labelB ?? "Hand B"}</div>
             <div className="hand">{lesson.compare.b.map((c, i) => <CardView key={i} card={c} small />)}</div>
           </div>
         </div>
@@ -51,7 +63,11 @@ function QuizView({ lesson, onSolved }: {
             key={i}
             className={`quiz-opt${picked === i ? (o.correct ? " good" : " bad") : ""}`}
             disabled={picked !== null && lesson.options[picked].correct}
-            onClick={() => { setPicked(i); if (o.correct) onSolved(); }}
+            onClick={() => {
+              setPicked(i);
+              if (o.correct) onSolved(attemptStars(mistakes, "good"));
+              else setMistakes((n) => n + 1);
+            }}
           >
             {o.label}
           </button>
@@ -69,8 +85,9 @@ function QuizView({ lesson, onSolved }: {
 
 // --- the module map ----------------------------------------------------------------
 
-function ModuleMap({ progress, onOpen }: {
+function ModuleMap({ progress, mastery, onOpen }: {
   progress: Record<string, number>;
+  mastery: Mastery;
   onOpen: (m: Module) => void;
 }) {
   const doneCount = MODULES.filter((m) => (progress[m.id] ?? 0) >= m.lessons.length).length;
@@ -87,6 +104,9 @@ function ModuleMap({ progress, onOpen }: {
           const done = progress[m.id] ?? 0;
           const total = m.lessons.length;
           const complete = done >= total;
+          const exercises = m.lessons.filter((lesson) =>
+            ["quiz", "hand", "scenario", "sizing"].includes(lesson.kind));
+          const earned = exercises.reduce((sum, lesson) => sum + (mastery[`${m.id}/${lesson.id}`] ?? 0), 0);
           return (
             <button key={m.id} className={`module-card${complete ? " complete" : ""}`} onClick={() => onOpen(m)}>
               <div className="module-icon">{m.icon}</div>
@@ -100,6 +120,7 @@ function ModuleMap({ progress, onOpen }: {
                 </div>
                 <div className="module-status">
                   {complete ? "Complete — review anytime" : done > 0 ? `Continue · ${done}/${total}` : `Start · ${total} lessons`}
+                  {exercises.length > 0 && ` · mastery ${earned}/${exercises.length * 3} stars`}
                 </div>
               </div>
             </button>
@@ -112,12 +133,14 @@ function ModuleMap({ progress, onOpen }: {
 
 // --- the lesson runner ---------------------------------------------------------------
 
-function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeRef, ready }: {
+function ModuleRunner({ module, startAt, mastery, onExit, onComplete, onCampaign, onMastery, bridgeRef, ready }: {
   module: Module;
   startAt: number;
+  mastery: Mastery;
   onExit: (lessonsDone: number) => void;
   onComplete: () => void;
-  onCampaign: () => void;
+  onCampaign: (bridgeId: string) => void;
+  onMastery: (lessonId: string, stars: number) => void;
   bridgeRef: MutableRefObject<EngineBridge | null>;
   ready: boolean;
 }) {
@@ -129,6 +152,9 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
   const lesson = module.lessons[step];
   const isLast = step === module.lessons.length - 1;
   const needHands = lesson.kind === "play" ? (lesson.requireHands ?? 1) : 0;
+  const recordMastery = (stars: number) => onMastery(`${module.id}/${lesson.id}`, stars);
+  const scoredLesson = ["quiz", "hand", "scenario", "sizing"].includes(lesson.kind);
+  const lessonStars = mastery[`${module.id}/${lesson.id}`] ?? 0;
 
   useEffect(() => {
     setSolved(lesson.kind === "read" || lesson.kind === "bridge" || step < maxDone);
@@ -140,7 +166,7 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
     setMaxDone(done);
     if (isLast) {
       onExit(done);
-      if (lesson.kind === "bridge" && lesson.action === "campaign") onCampaign();
+      if (lesson.kind === "bridge" && lesson.action === "campaign") onCampaign(lesson.id);
       else onComplete();
     } else {
       setStep((s) => s + 1);
@@ -163,6 +189,11 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
 
       <div className="panel academy-card">
         <h2>{lesson.title}</h2>
+        {scoredLesson && (
+          <div className="lesson-mastery" aria-label={`Best mastery ${lessonStars} of 3 stars`}>
+            Mastery {"★".repeat(lessonStars)}{"☆".repeat(3 - lessonStars)}
+          </div>
+        )}
         <div className="body">
           {lesson.kind === "read" && (
             <>
@@ -171,21 +202,25 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
             </>
           )}
           {lesson.kind === "quiz" && (
-            <QuizView key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)} />
+            <QuizView key={lesson.id} lesson={lesson} onSolved={(stars) => {
+              recordMastery(stars); setSolved(true);
+            }} />
           )}
           {lesson.kind === "hand" && (
             <ScriptedHand
               key={lesson.id}
               hole={lesson.hole} board={lesson.board} pot={lesson.pot} toCall={lesson.toCall}
               situation={lesson.situation} choices={lesson.choices}
-              onSolved={() => setSolved(true)}
+              onSolved={(stars) => { recordMastery(stars); setSolved(true); }}
             />
           )}
           {lesson.kind === "scenario" && (
-            <ScenarioDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)} />
+            <ScenarioDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)}
+              onMastery={recordMastery} />
           )}
           {lesson.kind === "sizing" && (
-            <SizingDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)} />
+            <SizingDrill key={lesson.id} lesson={lesson} onSolved={() => setSolved(true)}
+              onMastery={recordMastery} />
           )}
           {lesson.kind === "play" && (
             <>
@@ -236,11 +271,12 @@ function ModuleRunner({ module, startAt, onExit, onComplete, onCampaign, bridgeR
 // --- top level ------------------------------------------------------------------------
 
 export function Academy({ onStart, bridgeRef, ready }: {
-  onStart: () => void;
+  onStart: (bridgeId: string) => void;
   bridgeRef: MutableRefObject<EngineBridge | null>;
   ready: boolean;
 }) {
   const [progress, setProgress] = useState<Record<string, number>>(loadProgress);
+  const [mastery, setMastery] = useState<Mastery>(loadMastery);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const module = MODULES.find((m) => m.id === openId) ?? null;
@@ -253,10 +289,18 @@ export function Academy({ onStart, bridgeRef, ready }: {
     });
   }
 
+  function recordMastery(lessonId: string, stars: number) {
+    setMastery((current) => {
+      const next = { ...current, [lessonId]: bestStars(current[lessonId], stars) };
+      saveMastery(next);
+      return next;
+    });
+  }
+
   if (!module) {
     return (
       <div className="academy">
-        <ModuleMap progress={progress} onOpen={(m) => setOpenId(m.id)} />
+        <ModuleMap progress={progress} mastery={mastery} onOpen={(m) => setOpenId(m.id)} />
       </div>
     );
   }
@@ -267,9 +311,11 @@ export function Academy({ onStart, bridgeRef, ready }: {
       key={module.id}
       module={module}
       startAt={done >= module.lessons.length ? 0 : done}
+      mastery={mastery}
       onExit={(lessonsDone) => { record(module.id, lessonsDone); setOpenId(null); }}
       onComplete={() => setOpenId(null)}
       onCampaign={onStart}
+      onMastery={recordMastery}
       bridgeRef={bridgeRef}
       ready={ready}
     />

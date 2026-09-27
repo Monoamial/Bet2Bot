@@ -39,7 +39,7 @@ export type Lesson =
   | { kind: "read"; id: string; title: string; body: string[]; visual?: "handRanks" }
   | {
       kind: "quiz"; id: string; title: string; prompt: string;
-      compare?: { a: string[]; b: string[] };
+      compare?: { a: string[]; b: string[]; labelA?: string; labelB?: string };
       options: { label: string; correct?: boolean; feedback: string }[];
     }
   | {
@@ -145,6 +145,45 @@ const HOW_POKER_WORKS: Module = {
       ],
       opponent: "caller",
       requireHands: 2,
+    },
+    {
+      kind: "read", id: "same-category", title: "The kicker breaks the tie",
+      body: [
+        "You just played real hands. Often both players make the same kind of hand. One pair doesn't always tie with one pair: compare the rank of the pair, then the highest remaining card (the kicker), then the next kicker.",
+        "Your best five cards can come from your hand, the shared board, or both. If the board already gives both players the same best five, you split the pot — suits never break a tie in Hold'em.",
+      ],
+    },
+    {
+      kind: "quiz", id: "which-kicker", title: "Same pair, different kicker",
+      prompt: "Both hands have a pair of aces. Compare the remaining cards from highest to lowest — which five-card hand wins?",
+      compare: {
+        a: ["As", "Ah", "Kc", "9d", "3s"],
+        b: ["Ac", "Ad", "Qc", "Jd", "Ts"],
+      },
+      options: [
+        { label: "Hand A — king kicker", correct: true,
+          feedback: "Correct. The pair ties, then A's king beats B's queen before the smaller kickers matter." },
+        { label: "Hand B — three higher-looking kickers",
+          feedback: "Compare kickers in order, not as a total: king beats queen. The other cards can't rescue B." },
+        { label: "They tie because both have aces",
+          feedback: "Hand types and pair rank tie, so the highest unused card decides it: king beats queen." },
+      ],
+    },
+    {
+      kind: "quiz", id: "board-plays", title: "When the board plays",
+      prompt: "The board is 5-6-7-8-9. Neither player has a ten. Both displays show the same best five board cards. Who wins?",
+      compare: {
+        a: ["5h", "6s", "7d", "8c", "9h"],
+        b: ["5h", "6s", "7d", "8c", "9h"],
+      },
+      options: [
+        { label: "They split the pot", correct: true,
+          feedback: "Yes. The board itself is a nine-high straight; both players use the same five cards, so they split." },
+        { label: "Hand A — hearts beat the other suits",
+          feedback: "Suit doesn't break poker ties. Those five board cards are literally the same hand for both players." },
+        { label: "Whoever held higher hole cards",
+          feedback: "Hole cards only matter if they improve your best five. Here the shared board makes the same straight for both." },
+      ],
     },
   ],
 };
@@ -483,7 +522,7 @@ const VALUE_BETTING: Module = {
         "The whole drill compresses to two block rules: strong hands RAISE (every street), and weak hands never bluff a caller.",
         "That's exactly how you beat Campaign Level 1 — set your made hands to Raise and let the Caller pay you off for 500 hands.",
       ],
-      cta: "Beat the Caller →",
+      cta: "Add value rules & face the Caller →",
       action: "campaign",
     },
   ],
@@ -580,10 +619,10 @@ const DISCIPLINE: Module = {
       id: "discipline-bridge",
       title: "Build the discipline in",
       body: [
-        "As blocks: widen your preflop RAISE range (steal), keep value-raising your strong hands — and facing a bet, set 'A pair → Fold'. Your bot never gets stubborn; that's its superpower.",
+        "This bridge will set 'A pair → Fold' facing bets on each street. Your other rules stay intact. Then widen your preflop RAISE range yourself to steal — the builder's preflop grid does not yet distinguish button from blind.",
         "This is precisely the recipe for Campaign Level 2 — the Shark.",
       ],
-      cta: "Take on the Shark →",
+      cta: "Add discipline rule & face the Shark →",
       action: "campaign",
     },
   ],
@@ -672,6 +711,203 @@ const BET_SIZING: Module = {
   ],
 };
 
+// ---------------------------------------------------------------------------------
+// Module 7 — Hand reading: ranges are stories, not certainty.
+// ---------------------------------------------------------------------------------
+
+const HAND_READING: Module = {
+  id: "hand-reading",
+  icon: "🔎",
+  title: "Read the opponent",
+  blurb: "Connect an opponent's actions to the hands they might have — then respond.",
+  lessons: [
+    {
+      kind: "read", id: "ranges-not-peeking", title: "Read a range, not two secret cards",
+      body: [
+        "You cannot see the opponent's hole cards. A good read narrows down a range — a set of possible hands — using what they've done, not a guess at their exact cards.",
+        "The same bet means different things from different opponents. The Rock rarely risks chips without strength; the River Bluffer attacks when its river hand misses. First ask: who is acting? Then: what did their action say?",
+        "Reads are uncertain. A fold can be right even when the opponent bluffed this once; a bluff-catch can be right even when you lose this time. Judge repeated decisions, not one revealed hand.",
+      ],
+    },
+    {
+      kind: "quiz", id: "same-bet-different-range", title: "Who is likely stronger?",
+      prompt: "On the river, both the Rock and the River Bluffer bet into you. Which bet more reliably represents a made hand?",
+      options: [
+        { label: "The Rock's bet", correct: true,
+          feedback: "Right. The Rock is tight; the River Bluffer often bets with high-card air. The action alone isn't the read — the opponent matters." },
+        { label: "The River Bluffer's bet",
+          feedback: "This opponent attacks even when its river hand missed. A bet from a tight Rock signals strength more often." },
+        { label: "Every river bet means the same thing",
+          feedback: "Opponents differ. Hand reading combines the action with what that player tends to do." },
+      ],
+    },
+    {
+      kind: "scenario", id: "reading-drill", title: "Follow their story",
+      intro: [
+        "Each spot tells you a player's tendency and the action they took. Name the likely *range* before choosing your response.",
+        "These are learning examples, not guaranteed wins on one hand. One answer per spot, then read the reason.",
+      ],
+      spots: [
+        {
+          hole: ["9h", "9c"], board: ["As", "Kd", "4c"], pot: 8, toCall: 2,
+          tag: "FLOP — the Rock raised preflop, then bet",
+          situation: "Your pocket pair was decent before the flop; now two overcards appear. The Rock's narrow opening range contains many big aces and kings. What's the low-cost response?",
+          choices: [
+            { action: "fold", verdict: "good", feedback: "A tight range plus two overcards and a continuation bet spells trouble. It's okay to release a hand that was playable preflop." },
+            { action: "call", verdict: "ok", feedback: "One cheap call might be defensible, but you're mostly hoping the Rock bluffed with two unpaired cards — not its usual line." },
+            { action: "raise", verdict: "bad", feedback: "Turning a marginal pair into a bluff against a tight player who has announced strength builds the wrong pot." },
+          ],
+        },
+        {
+          hole: ["8h", "8d"], board: ["Kc", "7s", "3h", "2d", "6c"], pot: 12, toCall: 4,
+          tag: "RIVER — the River Bluffer bets a missed board",
+          situation: "You have a small pocket pair. This opponent bets river high-card hands instead of giving up. It fires again on a dry board. What does your pair do against that bluff-heavy range?",
+          choices: [
+            { action: "call", verdict: "good", feedback: "Bluff-catch. A small pair beats all the unpaired hands this opponent turns into river bets. You don't need a monster to call a frequent bluffer." },
+            { action: "fold", verdict: "bad", feedback: "If you fold every pair, its no-pair river bluff succeeds too often. Their tendency makes a modest pair worth calling." },
+            { action: "raise", verdict: "ok", feedback: "Your pair beats its bluffs already. Raising can make worse hands fold and get called by stronger ones; call to keep its bluff in." },
+          ],
+        },
+        {
+          hole: ["Qs", "Js"], board: ["8h", "4d", "2c", "9s"], pot: 10, toCall: 0,
+          tag: "TURN — the Over-folder checks to you",
+          situation: "You have only queen-high. The Over-folder releases weak pairs when facing pressure and has checked twice. Can you make its range fold?",
+          choices: [
+            { action: "raise", verdict: "good", feedback: "Target the tendency, not your hole cards. This player over-folds to bets — pressure wins pots without a showdown." },
+            { action: "check", verdict: "ok", feedback: "Free cards are safe, but this is a missed steal against an opponent whose range gives up too much." },
+          ],
+        },
+        {
+          hole: ["Ac", "Jc"], board: ["As", "7h", "2d", "6s"], pot: 12, toCall: 4,
+          tag: "TURN — the Trapper checked, then raised",
+          situation: "Top pair felt good. But the Trapper checked a street, then raised your turn bet. It saves raises for three of a kind or better. What changed?",
+          choices: [
+            { action: "fold", verdict: "good", feedback: "Its line narrows the range sharply to monsters. Your top pair is good against random hands, not against a trapper's rare raise." },
+            { action: "call", verdict: "bad", feedback: "You'd be paying off exactly the slow-play this bot is built to make. Respect the opponent's *sequence*, not only your pair." },
+            { action: "raise", verdict: "bad", feedback: "Re-raising a trapper's rare strong raise with one pair puts extra chips in while behind." },
+          ],
+        },
+      ],
+    },
+    {
+      kind: "play", id: "read-live", title: "Try one read in real play",
+      body: [
+        "Play two hands against the River Bluffer. Watch the announcements: preflop action, streets, and its river betting tendency. If it bets with a dry-board miss, a modest made hand can call rather than automatically fold.",
+        "The result of two hands is mostly luck; focus on whether you noticed *why* this opponent put chips in.",
+      ],
+      opponent: "river_bluffer", requireHands: 2,
+    },
+    {
+      kind: "bridge", id: "reading-bridge", title: "Think like a profiler",
+      body: [
+        "A bot can only react to information it can observe: the board, actions, position, and showdowns. The Campaign's Profiler keeps its own record of showdowns; its opponent-type condition becomes available after earlier levels.",
+        "Your hand-reading skill now has a home in the builder. The current rule blocks cannot directly recognize an opponent's exact river-bluff pattern, so this bridge leaves your saved strategy unchanged.",
+      ],
+      cta: "Back to the map",
+    },
+  ],
+};
+
+// ---------------------------------------------------------------------------------
+// Module 8 — Board texture: cards change what opponents can plausibly hold.
+// ---------------------------------------------------------------------------------
+
+const BOARD_TEXTURE: Module = {
+  id: "board-texture",
+  icon: "🌊",
+  title: "Read the board",
+  blurb: "A dry flop and a connected, suited flop call for different levels of caution.",
+  lessons: [
+    {
+      kind: "read", id: "dry-wet", title: "Dry boards, wet boards",
+      body: [
+        "The shared cards matter as much as your hole cards. K-7-2 in three suits is DRY: it offers few immediate straight or flush draws. J-T-9 in one suit is WET: many opponents can already have a straight or flush, and many more can draw to one.",
+        "Board texture changes what counts as a strong hand. Top pair is comfortable on a dry board against an opponent who checks; it is much less comfortable when a tight player raises into three connected hearts.",
+        "An overcard, a paired board, or a third/fourth card of one suit changes the story on later streets. Don't panic at every scary card; compare it with the opponent's line and your own best five.",
+      ],
+    },
+    {
+      kind: "quiz", id: "which-board-wetter", title: "Where are there more draws?",
+      prompt: "Which flop makes it easier for many opponents to have a straight or flush draw (or already have a made flush)?",
+      compare: {
+        a: ["Kc", "7d", "2s"], b: ["Jh", "Th", "9h"],
+        labelA: "Flop A — dry", labelB: "Flop B — connected + suited",
+      },
+      options: [
+        { label: "Flop B — J♥ T♥ 9♥", correct: true,
+          feedback: "Correct. Close ranks create straight possibilities and three hearts create flush possibilities. The K-7-2 rainbow flop is much quieter." },
+        { label: "Flop A — K♣ 7♦ 2♠",
+          feedback: "The ranks are far apart and all suits differ; far fewer draws connect with this board." },
+        { label: "They are equally draw-heavy",
+          feedback: "The overlap of J-T-9 and the three hearts makes Flop B much more coordinated." },
+      ],
+    },
+    {
+      kind: "scenario", id: "texture-drill", title: "Same poker, different board",
+      intro: [
+        "Look at the board before acting. A bet on a quiet flop and the same bet on a dangerous runout don't tell the same story.",
+        "One attempt per spot; these first texture examples use authored cards. Read why after each choice.",
+      ],
+      spots: [
+        {
+          hole: ["Kh", "Qd"], board: ["Kc", "7s", "2h"], pot: 6, toCall: 0,
+          tag: "DRY FLOP — the Caller checks",
+          situation: "Top pair with a good kicker on a disconnected, rainbow board. The Caller checks and will pay off worse hands. What should you do?",
+          choices: [
+            { action: "raise", verdict: "good", feedback: "Value bet. Few draws can suddenly catch up, and this opponent will call with worse pairs." },
+            { action: "check", verdict: "ok", feedback: "Checking keeps the pot small but gives up value against a player who calls almost anything." },
+          ],
+        },
+        {
+          hole: ["As", "Jd"], board: ["Jh", "Th", "9h"], pot: 12, toCall: 4,
+          tag: "WET FLOP — the Shark raises",
+          situation: "Top pair with no heart in your hand. The flop has three connected hearts and the tight Shark raised. How does the board change your one-pair hand?",
+          choices: [
+            { action: "fold", verdict: "good", feedback: "Respect this line. Straight and flush hands already exist; when this opponent raises a wet flop, one pair without a heart is rarely good enough." },
+            { action: "call", verdict: "ok", feedback: "A cheap call can be defensible in some matchups, but here you will face more bets against a tight raiser on a dangerous board." },
+            { action: "raise", verdict: "bad", feedback: "Re-raising a tight player's strength with one pair on a coordinated board overvalues your hand." },
+          ],
+        },
+        {
+          hole: ["Kc", "Kd"], board: ["Ks", "8h", "2h", "Jh"], pot: 10, toCall: 0,
+          tag: "TURN — a third heart appears",
+          situation: "You have three kings. A heart arrives, but the Caller checks and calls with lots of worse pairs. Does one scary card force a check?",
+          choices: [
+            { action: "raise", verdict: "good", feedback: "No. A flush is possible, not guaranteed. A set remains very strong; keep charging this station's many worse hands." },
+            { action: "check", verdict: "ok", feedback: "Caution is understandable, but always checking when any draw completes costs value with a monster." },
+          ],
+        },
+        {
+          hole: ["Ac", "Ad"], board: ["Kh", "7h", "2c", "Jh", "4h"], pot: 16, toCall: 4,
+          tag: "RIVER — four hearts, no heart in your hand",
+          situation: "Your pocket aces were strong preflop. Four hearts are now on the board and the tight Shark bets the river. What does your hand really beat?",
+          choices: [
+            { action: "fold", verdict: "good", feedback: "Your best hand is still just one pair without a heart. A tight river bet on this runout usually signals a flush or better; don't pay it off." },
+            { action: "call", verdict: "bad", feedback: "Pocket aces don't protect you from a completed flush. Read the five board cards and the opponent's river action." },
+            { action: "raise", verdict: "bad", feedback: "This turns a one-pair hand into a costly bluff against a tight value range." },
+          ],
+        },
+      ],
+    },
+    {
+      kind: "play", id: "texture-live", title: "Read the runout live",
+      body: [
+        "Play two Limit hands against the Shark. Watch each new board card arrive separately and re-evaluate your best five on the flop, turn, and river.",
+        "Don't overreact to every coordinated board: pair your read of the cards with what this specific opponent actually bets or checks.",
+      ],
+      opponent: "tight_aggressive", requireHands: 2,
+    },
+    {
+      kind: "bridge", id: "texture-bridge", title: "What your bot can read so far",
+      body: [
+        "You read the board as a texture, but the current visual builder only knows made-hand tiers, position, and opponent type. Wet/dry texture conditions need their own tested engine rules before they can be dropped into a bot safely.",
+        "For now, use this knowledge in Play mode. The current Campaign still starts with the simpler Limit game.",
+      ],
+      cta: "Back to the map",
+    },
+  ],
+};
+
 export const MODULES: Module[] = [
   HOW_POKER_WORKS,
   FIRST_DECISIONS,
@@ -679,4 +915,6 @@ export const MODULES: Module[] = [
   VALUE_BETTING,
   DISCIPLINE,
   BET_SIZING,
+  HAND_READING,
+  BOARD_TEXTURE,
 ];

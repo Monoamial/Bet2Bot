@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Lesson, SizingSpot } from "../academy/lessons";
+import { drillStars } from "../academy/mastery";
 import { CardBack, CardView } from "./Card";
 import { Avatar } from "../assets/Avatar";
 
@@ -27,9 +28,10 @@ function SizingDecision({ spot, picked, onPick }: {
   </div>;
 }
 
-export function SizingDrill({ lesson, onSolved }: {
+export function SizingDrill({ lesson, onSolved, onMastery }: {
   lesson: Extract<Lesson, { kind: "sizing" }>;
   onSolved: () => void;
+  onMastery?: (stars: number) => void;
 }) {
   const [index, setIndex] = useState(-1);
   const [picked, setPicked] = useState<SizingSpot["choices"][number] | null>(null);
@@ -37,7 +39,9 @@ export function SizingDrill({ lesson, onSolved }: {
   const [finished, setFinished] = useState(false);
 
   function next() {
-    if (index + 1 === lesson.spots.length) { setFinished(true); onSolved(); }
+    if (index + 1 === lesson.spots.length) {
+      setFinished(true); onMastery?.(drillStars(score, lesson.spots.length)); onSolved();
+    }
     else { setIndex((i) => i + 1); setPicked(null); }
   }
   if (index < 0) return <div>

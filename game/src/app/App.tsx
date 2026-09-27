@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { EngineBridge } from "../pyodide/bridge";
 import { LEVELS } from "../campaign/levels";
-import type { LevelResult } from "../engine-api/types";
+import { evaluateObjectives } from "../campaign/objectives";
+import type { LevelResult, SessionResult } from "../engine-api/types";
 import { Academy } from "../components/Academy";
 import { Landing } from "../components/Landing";
 import { GameModes } from "../components/GameModes";
@@ -11,7 +12,7 @@ import { LevelSelect } from "../components/LevelSelect";
 import { StrategyBuilder } from "../components/StrategyBuilder";
 import { PokerTable } from "../components/PokerTable";
 import { StatsPanel } from "../components/StatsPanel";
-import { Strategy, clone, compileStrategy } from "../strategy/model";
+import { Strategy, applyLessonBridge, clone, compileStrategy } from "../strategy/model";
 
 const LS = {
   get<T>(key: string, fallback: T): T {
@@ -42,8 +43,13 @@ export function App() {
     () => LS.get<Strategy | null>("b2b.strategy", null) ?? clone(LEVELS[0].starterStrategy),
   );
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<LevelResult | null>(null);
+  const [result, setResult] = useState<LevelResult | SessionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [campaignNote, setCampaignNote] = useState<string | null>(null);
+  const [bestStars, setBestStars] = useState<Record<string, number>>(
+    () => LS.get("b2b.campaign.bestStars.v1", {}),
+  );
+  const [previousBest, setPreviousBest] = useState(0);
 
   const level = LEVELS[levelIndex];
   const hasNext = levelIndex < LEVELS.length - 1;
@@ -60,26 +66,48 @@ export function App() {
   // Persist the tab, but never "home" — the landing page is a door, not a place.
   useEffect(() => { if (!embedded && view !== "home") LS.set("b2b.view", view); }, [view, embedded]);
 
-  function startCampaign() {
+  function startCampaign(bridgeId: string) {
     LS.set("b2b.academyDone", true);
+    const update = applyLessonBridge(strategy, bridgeId);
+    if (update.description) {
+      setStrategy(update.strategy);
+      setCampaignNote(update.description);
+    }
+    if (bridgeId === "value-bridge") setLevelIndex(0);
+    if (bridgeId === "discipline-bridge" && cleared.has(LEVELS[0].id)) setLevelIndex(1);
+    setResult(null);
     setView("campaign");
   }
   function selectLevel(i: number) {
-    setLevelIndex(i); setResult(null); setError(null);
+    setLevelIndex(i); setResult(null); setError(null); setCampaignNote(null);
   }
 
   async function run() {
     if (!bridgeRef.current || !ready || running) return;
-    setRunning(true); setError(null);
+    setPreviousBest(bestStars[level.id] ?? 0);
+    setRunning(true); setError(null); setCampaignNote(null);
     try {
-      const res = await bridgeRef.current.runLevel({
+      const request = {
         strategy: compileStrategy(strategy), opponent: level.opponent,
         hands: level.hands, capture: 6, // no seed → fresh random hands each run
-      });
+      };
+      const res: LevelResult | SessionResult = level.mode === "survival"
+        ? await bridgeRef.current.runSession({
+            ...request, stack: level.stack ?? 50, maxHands: level.hands,
+            config: { betting: "no_limit" },
+          })
+        : await bridgeRef.current.runLevel(request);
       if (res.error) { setError(res.error); setResult(null); }
       else {
         setResult(res);
-        if (res.player_bb100 > level.winBb100 && !cleared.has(level.id)) {
+        const score = evaluateObjectives(level.objectives, res);
+        if (score.stars > (bestStars[level.id] ?? 0)) {
+          const next = { ...bestStars, [level.id]: score.stars };
+          setBestStars(next);
+          LS.set("b2b.campaign.bestStars.v1", next);
+        }
+        const gate = score.objectives.find((objective) => objective.id === level.progressionObjectiveId);
+        if ((gate?.stars ?? 0) > 0 && !cleared.has(level.id)) {
           const next = new Set(cleared).add(level.id);
           setCleared(next);
           LS.set("b2b.cleared", [...next]);
@@ -133,13 +161,18 @@ export function App() {
             <div className="panel">
               <h2>Campaign</h2>
               <div className="body">
-                <LevelSelect levels={LEVELS} index={levelIndex} cleared={cleared} onSelect={selectLevel} />
+                <LevelSelect levels={LEVELS} index={levelIndex} cleared={cleared}
+                  bestStars={bestStars} onSelect={selectLevel} disabled={running} />
               </div>
             </div>
             <LessonPanel level={level} />
             <div className="panel builder-panel" style={{ flex: 1 }}>
               <h2>Your Strategy</h2>
-              <StrategyBuilder strategy={strategy} onChange={setStrategy} unlocks={level.unlocks} />
+              {campaignNote && <div className="bridge-notice" role="status">{campaignNote}</div>}
+              <StrategyBuilder
+                strategy={strategy} onChange={setStrategy} unlocks={level.unlocks}
+                betting={level.mode === "survival" ? "no_limit" : "limit"}
+              />
               <div className="toolbar">
                 <button className="run" onClick={run} disabled={!ready || running}>
                   {running ? "Running…" : ready ? `▶ Run ${level.hands.toLocaleString()} hands` : "engine loading…"}
@@ -163,7 +196,7 @@ export function App() {
             />
             {result && (
               <StatsPanel
-                result={result} level={level}
+                result={result} level={level} previousBest={previousBest}
                 onNext={hasNext ? () => selectLevel(levelIndex + 1) : undefined}
                 nextLabel={hasNext ? `Next: ${LEVELS[levelIndex + 1].opponentLabel}` : undefined}
               />

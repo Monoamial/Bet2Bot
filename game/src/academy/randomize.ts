@@ -13,10 +13,12 @@ interface VariantGroup {
 const deal = (hole: [string, string], board: string[]): Deal => ({ hole, board });
 
 /**
- * A5 uses curated, rank-changing variants for the three current apply-it drills only.
+ * A5 uses curated, rank-changing variants for four authored concept drills.
  * Position keeps its paired spots identical and preserves the one-overcard pair, air,
  * open-ended draw, and overpair concepts; Value keeps top pair, trips, a missed flush,
- * and two pair; Discipline keeps the steal, top-pair fold, set, and ace-high fold spots.
+ * and two pair; Discipline keeps steal, top-pair fold, set, and ace-high fold spots.
+ * Hand Reading keeps the Rock's overcards, a river bluff-catcher, the Over-folder's
+ * surrender, and the Trapper's raised top pair. Every variant has its own spot test.
  * Other lessons intentionally stay authored as-is: these are teaching templates, not a
  * poker solver. If editing an eligible drill, keep its copy generic and extend the tests
  * before adding ranks or changing a board length/action context.
@@ -147,6 +149,44 @@ const VARIANTS: Record<string, readonly VariantGroup[]> = {
         deal(["Ah", "7d"], ["Kc", "9s", "5h", "2d", "Qc"]),
         deal(["As", "6c"], ["Kh", "9d", "4s", "2c", "Qd"]),
         deal(["Ad", "5c"], ["Jh", "8s", "4d", "2c", "Ks"]),
+      ],
+    },
+  ],
+  "reading-drill": [
+    {
+      spots: [0],
+      options: [
+        deal(["9h", "9c"], ["As", "Kd", "4c"]),
+        deal(["8h", "8c"], ["As", "Qd", "4c"]),
+        deal(["7h", "7c"], ["Ks", "Jd", "4c"]),
+        deal(["Th", "Tc"], ["As", "Kd", "5c"]),
+      ],
+    },
+    {
+      spots: [1],
+      options: [
+        deal(["8h", "8d"], ["Kc", "7s", "3h", "2d", "6c"]),
+        deal(["6h", "6d"], ["Qs", "9c", "4h", "2d", "3s"]),
+        deal(["5h", "5d"], ["Kc", "9s", "4h", "2d", "3c"]),
+        deal(["7h", "7d"], ["Qc", "9s", "4h", "2d", "6c"]),
+      ],
+    },
+    {
+      spots: [2],
+      options: [
+        deal(["Qs", "Js"], ["8h", "4d", "2c", "9s"]),
+        deal(["Kh", "Jh"], ["8s", "4d", "2c", "9h"]),
+        deal(["Qd", "Td"], ["8h", "4c", "2s", "9d"]),
+        deal(["As", "Jh"], ["8h", "4d", "2c", "9s"]),
+      ],
+    },
+    {
+      spots: [3],
+      options: [
+        deal(["Ac", "Jc"], ["As", "7h", "2d", "6s"]),
+        deal(["Kc", "Qc"], ["Ks", "8h", "3d", "5s"]),
+        deal(["Qh", "Jh"], ["Qc", "8d", "2s", "6c"]),
+        deal(["Ah", "Kh"], ["Ac", "9d", "4s", "6c"]),
       ],
     },
   ],

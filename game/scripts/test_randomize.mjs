@@ -10,6 +10,7 @@ const expectedSpotVariantCounts = {
   "position-drill": [5, 5, 5, 5, 5, 5],
   "value-drill": [4, 4, 4, 4, 4],
   "discipline-drill": [5, 4, 4, 4],
+  "reading-drill": [4, 4, 4, 4],
 };
 const rankValue = (card) => "23456789TJQKA".indexOf(card[0]);
 const rank = (card) => card[0];
@@ -103,6 +104,21 @@ function assertScenarioSemantics(lesson) {
       assertTopTwoPair(lesson.spots[4]);
       break;
     }
+    case "reading-drill": {
+      const rock = lesson.spots[0];
+      assert.equal(rank(rock.hole[0]), rank(rock.hole[1]), "Rock spot has a pocket pair");
+      assert.equal(rock.board.filter(card => rankValue(card) > rankValue(rock.hole[0])).length, 2);
+      const bluffCatch = lesson.spots[1];
+      assert.equal(bluffCatch.board.length, 5);
+      assert.equal(rank(bluffCatch.hole[0]), rank(bluffCatch.hole[1]), "bluff-catcher is a modest pair");
+      assert.ok(bluffCatch.board.every(card => rank(card) !== rank(bluffCatch.hole[0])));
+      const folder = lesson.spots[2];
+      assertNoPairedRanks(folder);
+      const trapper = lesson.spots[3];
+      assert.equal(trapper.board.length, 4);
+      assert.ok(trapper.hole.some(card => rank(card) === rank(trapper.board[0])), "trapper spot keeps top pair");
+      break;
+    }
     case "discipline-drill": {
       const steal = lesson.spots[0];
       assert.equal(steal.board.length, 0, "the steal remains preflop");
@@ -118,9 +134,10 @@ function assertScenarioSemantics(lesson) {
   }
 }
 
-test("eligible lesson list is explicit and limited to current scenario drills", () => {
-  assert.deepEqual(RANDOMIZED_SCENARIO_IDS, ["position-drill", "value-drill", "discipline-drill"]);
-  assert.equal(scenarios.length, RANDOMIZED_SCENARIO_IDS.length);
+test("eligible list names only concept-verified drills; new scenarios can stay authored", () => {
+  assert.deepEqual(RANDOMIZED_SCENARIO_IDS, ["position-drill", "value-drill", "discipline-drill", "reading-drill"]);
+  assert.ok(scenarios.length >= RANDOMIZED_SCENARIO_IDS.length);
+  for (const id of RANDOMIZED_SCENARIO_IDS) assert.ok(byId.has(id));
 });
 
 for (const id of RANDOMIZED_SCENARIO_IDS) {

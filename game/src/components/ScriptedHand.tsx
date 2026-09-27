@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CardView, CardBack } from "./Card";
 import { Avatar } from "../assets/Avatar";
+import { attemptStars } from "../academy/mastery";
 import { ACTION_STYLE, Action } from "../strategy/model";
 
 type Choice = { action: Action; verdict: "good" | "ok" | "bad"; feedback: string };
@@ -14,14 +15,16 @@ export function ScriptedHand({
   toCall: number;
   situation: string;
   choices: Choice[];
-  onSolved: () => void;
+  onSolved: (stars: number) => void;
 }) {
   const [picked, setPicked] = useState<Choice | null>(null);
+  const [mistakes, setMistakes] = useState(0);
 
   function choose(c: Choice) {
     if (picked) return;
     setPicked(c);
-    if (c.verdict !== "bad") onSolved();
+    if (c.verdict === "bad") setMistakes((n) => n + 1);
+    else onSolved(attemptStars(mistakes, c.verdict));
   }
 
   return (

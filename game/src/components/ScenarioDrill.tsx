@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import type { Lesson, Spot, SpotChoice } from "../academy/lessons";
 import { randomizeScenario } from "../academy/randomize";
+import { drillStars } from "../academy/mastery";
 import { CardView, CardBack } from "./Card";
 import { Avatar } from "../assets/Avatar";
 import { ACTION_STYLE, Action } from "../strategy/model";
@@ -76,9 +77,10 @@ function makeDealSeed(): number {
   return (Date.now() ^ Math.floor(Math.random() * 0x1_0000_0000)) >>> 0;
 }
 
-export function ScenarioDrill({ lesson, onSolved }: {
+export function ScenarioDrill({ lesson, onSolved, onMastery }: {
   lesson: Extract<Lesson, { kind: "scenario" }>;
   onSolved: () => void;
+  onMastery?: (stars: number) => void;
 }) {
   const [seed, setSeed] = useState(makeDealSeed);
   // Keep the seeded deal fixed through every render/answer in this attempt.
@@ -99,6 +101,7 @@ export function ScenarioDrill({ lesson, onSolved }: {
   function next() {
     if (index + 1 >= total) {
       setFinished(true);
+      onMastery?.(drillStars(score, total));
       onSolved(); // completing the drill unlocks Continue, whatever the score
     } else {
       setIndex((i) => i + 1);
@@ -129,10 +132,10 @@ export function ScenarioDrill({ lesson, onSolved }: {
         <div className="drill-score">{score} / {total}</div>
         <p className="academy-p">
           {perfect
-            ? "Perfect — you read every seat correctly. This is exactly the judgment your bot rules will encode."
+            ? "Perfect — you read every situation correctly. These are exactly the judgments your bot rules will encode."
             : solid
-              ? "Solid. Skim the spots you missed above in your mind — the seat badge is always the first thing to check."
-              : "The concept hasn't clicked yet — that's what drills are for. Run it again and check the badge before the cards."}
+              ? "Solid. Before you retry, recall the opponent, your hand, and the price in any spot you missed."
+              : "The concept hasn't clicked yet — that's what drills are for. Run it again and read the situation before the cards."}
         </p>
         <div className="drill-summary-actions">
           <button className="ghost" onClick={retry}>↺ Run the drill again</button>
