@@ -3,6 +3,7 @@ import type { CuratedReplay, PokerEvent } from "../engine-api/types";
 import { CardBack, CardView } from "./Card";
 import { TableFelt } from "../assets/TableFelt";
 import { Avatar } from "../assets/Avatar";
+import { actionLabel } from "../util/handEvents";
 
 interface SeatView {
   cards: string[];
@@ -19,16 +20,6 @@ interface TableView {
   winners: number[];
   hands: Record<number, string>;
   explain: { seat: number; text: string } | null;
-}
-
-function actionLabel(action: string, amount: number): string {
-  switch (action) {
-    case "fold": return "folds";
-    case "check": return "checks";
-    case "call": return amount > 0 ? `calls ${amount}` : "calls";
-    case "raise": return `raises ${amount}`;
-    default: return action;
-  }
 }
 
 function reduce(events: PokerEvent[], upto: number): TableView {
@@ -52,7 +43,7 @@ function reduce(events: PokerEvent[], upto: number): TableView {
         break;
       case "action":
         view.acting = e.seat;
-        seat(e.seat).bubble = actionLabel(e.action, e.amount);
+        seat(e.seat).bubble = actionLabel(e);
         seat(e.seat).contributed += e.amount;
         view.pot = e.pot;
         view.explain = e.explain ? { seat: e.seat, text: e.explain } : null;

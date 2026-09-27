@@ -10,6 +10,7 @@ import { CardBack, CardView } from "./Card";
 import { TableFelt } from "../assets/TableFelt";
 import { Avatar } from "../assets/Avatar";
 import { ACTION_STYLE, Action } from "../strategy/model";
+import { actionLabel } from "../util/handEvents";
 
 export const OPPONENTS = [
   { key: "caller", label: "The Caller", tendency: "Calls almost anything. Bet good hands for value; don't bluff." },
@@ -48,16 +49,6 @@ interface View {
 }
 const emptyView = (): View => ({ button: 0, stacks: null, announcement: "Waiting for the deal", history: [], bestFive: {}, streetBets: {}, lastBet: null, actionNumber: 0, seats: {}, board: [], pot: 0, acting: null, winners: [], hands: {}, handDetails: {}, pots: [] });
 
-function label(e: Extract<PokerEvent, { type: "action" }>): string {
-  const { action, amount } = e;
-  if (action === "fold") return "folds";
-  if (action === "check") return "checks";
-  if (e.all_in) return `all-in ${amount}`;
-  if (action === "call") return amount > 0 ? `calls ${amount}` : "calls";
-  if (action === "raise") return e.raise_to ? `raises to ${e.raise_to}` : `raises ${amount}`;
-  return action;
-}
-
 function apply(view: View, events: PokerEvent[], names: string[]): View {
   const v: View = { ...view, history: [...view.history], seats: { ...view.seats }, streetBets: { ...view.streetBets }, stacks: view.stacks?.slice() ?? null };
   const seat = (i: number) => (v.seats[i] = v.seats[i] ?? { cards: [], bubble: "", allIn: false });
@@ -76,7 +67,7 @@ function apply(view: View, events: PokerEvent[], names: string[]): View {
         seat(e.seat).cards = e.cards; break;
       case "action": {
         const s = seat(e.seat);
-        v.acting = e.seat; s.bubble = label(e); v.pot = e.pot;
+        v.acting = e.seat; s.bubble = actionLabel(e); v.pot = e.pot;
         v.lastBet = e.amount > 0 ? e.seat : null;
         if (e.amount > 0) v.actionNumber++;
         if (e.amount > 0) v.streetBets[e.seat] = (v.streetBets[e.seat] ?? 0) + e.amount;
