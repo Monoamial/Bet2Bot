@@ -1,12 +1,25 @@
 // The Play tab: a game-mode select. Classic four-action Limit stays the default,
 // introductory game; the other modes introduce variable betting (No-Limit and
-// Pot-Limit), a carried stack (Survival), and a full table (6-Max).
+// Pot-Limit), selectable per-hand stack sizes, a carried stack (Survival), and a
+// full table (6-Max).
 
 import { useState } from "react";
 import type { MutableRefObject } from "react";
 import type { BettingFormat } from "../engine-api/types";
 import type { EngineBridge } from "../pyodide/bridge";
 import { LivePlay } from "./LivePlay";
+
+export interface StackPreset {
+  key: "short" | "standard";
+  label: string;
+  chips: number;
+  bigBlinds: number;
+}
+
+export const HEADS_UP_STACK_PRESETS: StackPreset[] = [
+  { key: "short", label: "Short stack · 20 BB", chips: 40, bigBlinds: 20 },
+  { key: "standard", label: "Standard · 100 BB", chips: 200, bigBlinds: 100 },
+];
 
 export interface GameMode {
   key: string;
@@ -16,6 +29,7 @@ export interface GameMode {
   desc: string;
   betting: BettingFormat;
   stack?: number;           // chips per seat per hand
+  stackPresets?: StackPreset[]; // selectable stacks, reset for both seats each hand
   carry?: boolean;          // survival: the stack persists until you bust
   opponents?: string[];     // fixed table (multiway); omit = pick one opponent
   intro: string;            // one-liner shown above the table once selected
@@ -36,20 +50,22 @@ export const MODES: GameMode[] = [
     icon: "🔥",
     title: "No-Limit Heads-Up",
     tag: "Variable betting",
-    desc: "Bet any amount, up to your whole stack. 100 big blinds each, refilled every hand — learn sizing without going broke.",
+    desc: "Bet any amount, up to your whole stack. Choose 20 or 100 big blinds each; both seats refill every hand.",
     betting: "no_limit",
     stack: 200,
-    intro: "You have 200 chips (100 big blinds) each hand. Use the presets or the slider to size your bets.",
+    stackPresets: HEADS_UP_STACK_PRESETS,
+    intro: "Choose 20 or 100 big blinds per seat. Both stacks reset to the selected amount every hand.",
   },
   {
     key: "pl",
     icon: "♣️",
     title: "Pot-Limit Heads-Up",
     tag: "Pot-capped sizing",
-    desc: "Raise up to the pot after calling, or your whole stack if it is smaller. 100 big blinds each, refilled every hand.",
+    desc: "Raise up to the pot after calling, or your whole stack if it is smaller. Choose 20 or 100 big blinds each; both seats refill every hand.",
     betting: "pot_limit",
     stack: 200,
-    intro: "You have 200 chips (100 big blinds) each hand. Raises stop at the pot-sized raise after your call; use the slider or Max Pot preset.",
+    stackPresets: HEADS_UP_STACK_PRESETS,
+    intro: "Choose 20 or 100 big blinds per seat; both stacks reset every hand. Raises are capped at the pot after your call.",
   },
   {
     key: "survival",
@@ -79,7 +95,15 @@ export function GameModes({ bridgeRef, ready }: {
   ready: boolean;
 }) {
   const [modeKey, setModeKey] = useState<string | null>(null);
+  const [stackPresetKey, setStackPresetKey] = useState<StackPreset["key"]>("standard");
   const mode = MODES.find((m) => m.key === modeKey) ?? null;
+  const stackPreset = mode?.stackPresets?.find((preset) => preset.key === stackPresetKey);
+  const stack = stackPreset?.chips ?? mode?.stack;
+
+  const selectMode = (key: string) => {
+    setModeKey(key);
+    setStackPresetKey("standard");
+  };
 
   if (!mode) {
     return (
@@ -92,7 +116,7 @@ export function GameModes({ bridgeRef, ready }: {
         </div>
         <div className="module-grid">
           {MODES.map((m) => (
-            <button key={m.key} className="module-card" onClick={() => setModeKey(m.key)}>
+            <button key={m.key} className="module-card" onClick={() => selectMode(m.key)}>
               <div className="module-icon">{m.icon}</div>
               <div className="module-meta">
                 <div className="module-title">
@@ -114,12 +138,38 @@ export function GameModes({ bridgeRef, ready }: {
         <span className="academy-module-name">{mode.icon} {mode.title}</span>
         <span className="mode-intro">{mode.intro}</span>
       </div>
+      {mode.stackPresets && stackPreset && (
+        <div className="panel">
+          <div className="body">
+            <div className="play-controls">
+              <b id="starting-stack-title">Starting stack per seat</b>
+              <div className="bet-presets" role="group" aria-labelledby="starting-stack-title">
+                {mode.stackPresets.map((preset) => (
+                  <button key={preset.key}
+                    className={`bet-preset${preset.key === stackPreset.key ? " on" : ""}`}
+                    aria-pressed={preset.key === stackPreset.key}
+                    onClick={() => setStackPresetKey(preset.key)}>
+                    {preset.label} · {preset.chips} chips
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="play-net" role="status" aria-live="polite" style={{ margin: "8px 0 0" }}>
+              Each hand starts you and your opponent with {stackPreset.chips} chips ({stackPreset.bigBlinds} big blinds) each.
+              Both seats refill to that amount after every hand; chips do not carry over.
+            </p>
+            <p className="play-net" style={{ margin: "4px 0 0" }}>
+              Changing the stack starts a new match. Click Sit down to begin it.
+            </p>
+          </div>
+        </div>
+      )}
       <LivePlay
-        key={mode.key}
+        key={`${mode.key}:${stack ?? "default"}`}
         bridgeRef={bridgeRef}
         ready={ready}
         betting={mode.betting}
-        stack={mode.stack}
+        stack={stack}
         carry={mode.carry}
         opponents={mode.opponents}
         autoStart={!!mode.opponents}

@@ -17,6 +17,15 @@ def _play_out(match, payload, pick="call"):
     return payload
 
 
+def _starting_stacks(payload):
+    """Recover the pre-blind stacks from the first live hand event."""
+    blinds = next(event for event in payload["events"] if event["type"] == "blinds")
+    stacks = list(blinds["stacks"])
+    stacks[blinds["sb_seat"]] += blinds["sb"]
+    stacks[blinds["bb_seat"]] += blinds["bb"]
+    return stacks
+
+
 def test_interactive_multiway_six_max():
     m = InteractiveMatch([caller] * 5, config=GameConfig(), seed=3)
     assert m.n == 6
@@ -42,6 +51,29 @@ def test_interactive_stacked_payload_exposes_stacks():
     assert p["betting"] == "no_limit"
     assert p["myStack"] is not None
     assert p["maxRaiseTo"] >= p["minRaiseTo"] > 0
+
+
+def test_interactive_short_stacks_refill_both_seats_without_carry():
+    m = InteractiveMatch([caller], config=GameConfig(betting="no_limit"),
+                         seed=4, stack=40)
+    first = _play_out(m, m.start_hand())
+    assert first["stacks"] != [40, 40]
+
+    next_hand = m.start_hand()
+    assert _starting_stacks(next_hand) == [40, 40]
+    assert next_hand["carry"] is False
+
+
+def test_interactive_survival_carries_human_but_refills_opponent():
+    m = InteractiveMatch([caller], config=GameConfig(betting="no_limit"),
+                         seed=4, stack=40, carry=True)
+    first = _play_out(m, m.start_hand())
+    carried = first["stacks"][0]
+    assert 0 < carried != 40
+
+    next_hand = m.start_hand()
+    assert _starting_stacks(next_hand) == [carried, 40]
+    assert next_hand["carry"] is True
 
 
 def test_interactive_survival_busts_and_stops():

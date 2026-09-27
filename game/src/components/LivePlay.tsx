@@ -1,5 +1,6 @@
 // Live human-vs-bots play, in any game mode: classic Limit heads-up (the default),
-// No-Limit with a bet slider, multiway tables, and survival (one carried stack).
+// No-Limit with a bet slider, refillable per-hand stacks, multiway tables, and
+// survival (one carried stack).
 // Renders payloads from poker/interactive.py via the Pyodide bridge.
 
 import { useEffect, useRef, useState } from "react";
@@ -147,9 +148,9 @@ function Seat({ view, index, name, kind, isYou, stack, compact }: {
         <div className="seat-meta">
           <div className="name">{isYou ? "You" : name}{!isYou && <span className="tag"> (AI)</span>}</div>
           {stack != null && (
-            <div className={`stack-chip${s.allIn ? " allin" : ""}`}>
+            <div className={`stack-chip${s.allIn ? " allin" : ""}`} title={`${stack} chips remaining this hand`}>
               <Chips amount={stack} />
-              <span>{s.allIn && stack === 0 ? "ALL-IN" : `${stack} chips`}</span>
+              <span>{s.allIn && stack === 0 ? "ALL-IN" : `${stack} chips left`}</span>
             </div>
           )}
           {view.hands[index] && <div className="tag" style={{ fontSize: 12, color: "var(--muted)" }}>{view.hands[index]}</div>}
