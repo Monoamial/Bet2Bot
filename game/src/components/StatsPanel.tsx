@@ -2,6 +2,7 @@ import type { LevelResult, SessionResult } from "../engine-api/types";
 import type { Level } from "../campaign/levels";
 import { evaluateObjectives } from "../campaign/objectives";
 import { WinningsGraph } from "./WinningsGraph";
+import { LeakBreakdown } from "./LeakBreakdown";
 
 function Chip({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
   return (
@@ -104,6 +105,8 @@ export function StatsPanel({
           <Chip label="went to showdown" value={`${you.showdown_pct.toFixed(0)}%`} />
           <Chip label="aggression" value={you.af === null ? "∞" : you.af.toFixed(1)} />
         </div>
+
+        <LeakBreakdown player={you} />
 
         <table className="stats">
           <thead>

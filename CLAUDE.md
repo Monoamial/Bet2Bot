@@ -49,7 +49,10 @@ watcher in `game/vite.config.ts`). Outside dev, run `npm run bundle-engine`.
 7. Campaign results are multi-output: `run_match(curate=K)` keeps the player's K biggest
    wins/losses as **curated replays** (bounded-memory top-K heaps), and `run_level`
    returns the bankroll **timeline** that `WinningsGraph.tsx` animates, plus richer
-   per-bot stats (win %, showdown %, biggest win/loss).
+   per-bot stats (win %, showdown %, biggest win/loss). `Stats.record` also
+   aggregates each complete hand's net once by its ending street and once by the
+   player's final made-hand tier, even without replay capture; the Results panel
+   displays these as **outcome** breakdowns, not per-street EV/causal leaks.
 
 Opponents live in `poker/bots/` and are registered in `game_api.OPPONENTS`.
 The free-play picker includes three explicitly exploitable archetypes in

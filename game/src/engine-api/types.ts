@@ -31,6 +31,8 @@ export interface BotSummaryRow {
   biggest_loss: number;
   showdowns_won: number;
   illegal: number;
+  by_end_street?: Record<string, { hands: number; net: number }>;
+  by_final_tier?: Record<string, { hands: number; net: number }>;
 }
 
 // A curated replay: one of the player's biggest wins or losses in the run.

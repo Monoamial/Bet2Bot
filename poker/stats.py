@@ -1,7 +1,7 @@
 """Accumulates per-bot statistics across many hands."""
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Dict, List
 
 from poker.engine import HandResult
 
@@ -22,6 +22,10 @@ class BotStats:
     biggest_win: int = 0               # largest single-hand net gain
     biggest_loss: int = 0              # largest single-hand net loss (<= 0)
     bankroll: List[int] = field(default_factory=list)  # cumulative net per hand
+    # Each hand's full net lands in exactly one finishing-street bucket and one
+    # own-hand-tier bucket. These are outcome summaries, NOT per-street EV.
+    by_end_street: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    by_final_tier: Dict[str, Dict[str, int]] = field(default_factory=dict)
 
     @property
     def vpip_pct(self) -> float:
@@ -72,6 +76,13 @@ class Stats:
             bs.hands += 1
             bs.net += hand_net
             bs.bankroll.append(bs.net)
+            for buckets, name in (
+                (bs.by_end_street, result.end_street),
+                (bs.by_final_tier, result.final_tiers[seat] if result.final_tiers else "Preflop (unmade)"),
+            ):
+                bucket = buckets.setdefault(name, {"hands": 0, "net": 0})
+                bucket["hands"] += 1
+                bucket["net"] += hand_net
             if hand_net > 0:
                 bs.hands_won += 1
             bs.biggest_win = max(bs.biggest_win, hand_net)

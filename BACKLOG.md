@@ -42,11 +42,12 @@ like improving. Each opponent is a creative, exploitable character.
 | B6 | Playtest/calibrate every new archetype with multiple seeds and candidate counter-strategies before promoting it to a Campaign level; the initial River Bluffer/Trapper versions are deliberately tough and an unchanged Level 1 strategy loses badly | P1 | M |
 
 ## C — Results & analytics (multi-output)
-Goal: match results show more than one number.
+Goal: go beyond the shipped net/hand-tier and ending-street outcome groups toward
+advice about *which decisions* lost value.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| C4 | Leak breakdown: where chips came from / were lost (by street / hand tier) | P2 | M |
+| C5 | Decision-level leak/EV analysis rather than outcome-only buckets: isolate costly calls, missed value, and pot odds with seeded test fixtures; current breakdown attributes each whole hand to its ending street and made tier | P1 | L |
 
 ## D — Metrics rework
 Goal: evolve past bb/100 as *the* measure. The Campaign now has named objective
@@ -96,7 +97,8 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 - **Now:** A2 content passes on original modules · A11 richer puzzles/spaced practice ·
   A12 deeper sizing practice · B2 tune builder gates after the new Survival boss.
 - **Next:** B1 creative roster expansion · B3 new calibrated levels · B4 progression
-  rewards/best stars · D4 EV/drill objectives · F2 coaching · H1 shared table component ·
+  rewards/unlocks · C5 decision-level leak diagnosis · D4 EV/drill objectives ·
+  F2 coaching · H1 shared table component ·
   A7 advanced builder bridges · E8 further Academy/Campaign formats.
 - **Later:** E3 custom tables · E6 multiway builder
   conditions · E10 per-class preflop sizing · E11 Godot API format parity · G mixed frequencies / draws / board

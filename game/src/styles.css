@@ -762,3 +762,11 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
   border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600;
 }
 .new-best { margin-left: 8px; color: var(--accent); font-size: 12px; white-space: nowrap; }
+.leak-breakdown { border: 1px solid var(--border); background: var(--panel-2); border-radius: 8px; padding: 10px 12px; }
+.leak-breakdown summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+.leak-breakdown p { font-size: 12px; color: var(--muted); margin: 7px 0 12px; }
+.breakdown-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 720px) { .breakdown-columns { grid-template-columns: 1fr; } }
+.breakdown-group > b { font-size: 13px; }
+.good-net { color: var(--accent); }
+.bad-net { color: var(--danger); }

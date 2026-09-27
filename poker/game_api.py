@@ -84,6 +84,8 @@ def _row(bs, big_blind: int) -> dict:
         "biggest_loss": bs.biggest_loss,
         "showdowns_won": bs.showdowns_won,
         "illegal": bs.illegal,
+        "by_end_street": bs.by_end_street,
+        "by_final_tier": bs.by_final_tier,
     }
 
 

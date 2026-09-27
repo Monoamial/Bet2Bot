@@ -99,6 +99,10 @@ class HandResult:
     pots: List[dict] = field(default_factory=list)
     # Remaining stack per seat after the hand (None when stacks are unlimited).
     final_stacks: Optional[List[int]] = None
+    # Entire-hand net can be grouped by where the hand ended and the player's
+    # own made-hand tier at that moment. This is outcome analysis, not EV.
+    end_street: str = "preflop"
+    final_tiers: List[str] = field(default_factory=list)
 
 
 def _order_from(start: int, n: int) -> List[int]:
@@ -450,6 +454,17 @@ def play_hand_gen(
     ev(award_event)
 
     result.board = list(board)
+    result.end_street = STREETS[street_idx]
+    if len(board) >= 3:
+        result.final_tiers = [
+            ("High card" if category == 0 else
+             "One pair" if category == 1 else
+             "Two pair / trips" if category in (2, 3) else
+             "Straight or better")
+            for category in (evaluate(hole[s] + board)[0] for s in range(n))
+        ]
+    else:
+        result.final_tiers = ["Preflop (unmade)"] * n
     result.betting_history = list(history)
     result.winners = list(winners)
     result.log = lines
