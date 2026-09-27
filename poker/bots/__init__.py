@@ -10,6 +10,7 @@ from poker.bots.examples import (
     rock,
     tight_aggressive,
 )
+from poker.bots.archetypes import over_folder, river_bluffer, trapper
 from poker.bots.stateful import ProfilingBot
 
 __all__ = [
@@ -21,5 +22,8 @@ __all__ = [
     "random_bot",
     "rock",
     "tight_aggressive",
+    "river_bluffer",
+    "over_folder",
+    "trapper",
     "ProfilingBot",
 ]

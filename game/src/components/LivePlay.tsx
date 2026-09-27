@@ -5,21 +5,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import type { EngineBridge } from "../pyodide/bridge";
-import type { InteractivePayload, LivePending, PokerEvent } from "../engine-api/types";
+import type { BettingFormat, InteractivePayload, LivePending, PokerEvent, PotLayerAward } from "../engine-api/types";
 import { CardBack, CardView } from "./Card";
 import { TableFelt } from "../assets/TableFelt";
 import { Avatar } from "../assets/Avatar";
 import { ACTION_STYLE, Action } from "../strategy/model";
 
 export const OPPONENTS = [
-  { key: "caller", label: "The Caller" },
-  { key: "rock", label: "The Rock" },
-  { key: "maniac", label: "The Maniac" },
-  { key: "tight_aggressive", label: "The Shark" },
-  { key: "profiler", label: "The Profiler" },
-  { key: "river_bluffer", label: "The River Bluffer" },
-  { key: "over_folder", label: "The Over-folder" },
-  { key: "trapper", label: "The Trapper" },
+  { key: "caller", label: "The Caller", tendency: "Calls almost anything. Bet good hands for value; don't bluff." },
+  { key: "rock", label: "The Rock", tendency: "Plays only premium starts. Its rare bets deserve respect." },
+  { key: "maniac", label: "The Maniac", tendency: "Raises at every opportunity, even with weak cards." },
+  { key: "tight_aggressive", label: "The Shark", tendency: "Folds weak hands but bets aggressively when strong." },
+  { key: "profiler", label: "The Profiler", tendency: "Watches your showdowns and adjusts its calls and folds." },
+  { key: "river_bluffer", label: "The River Bluffer", tendency: "Bluffs with unpaired river hands. Try calling with modest made hands." },
+  { key: "over_folder", label: "The Over-folder", tendency: "Folds almost every pair to a bet. Small pressure goes far." },
+  { key: "trapper", label: "The Trapper", tendency: "Checks to hide strong hands, then raises your bet with trips or better." },
 ];
 const ACTION_ORDER: Action[] = ["fold", "check", "call", "raise"];
 
@@ -32,6 +32,7 @@ interface View {
   button: number;
   stacks: number[] | null;
   announcement: string;
+  history: string[];
   bestFive: Record<number, string[]>;
   streetBets: Record<number, number>;
   lastBet: number | null;
@@ -42,8 +43,10 @@ interface View {
   acting: number | null;
   winners: number[];
   hands: Record<number, string>;
+  handDetails: Record<number, string>;
+  pots: PotLayerAward[];
 }
-const emptyView = (): View => ({ button: 0, stacks: null, announcement: "Waiting for the deal", bestFive: {}, streetBets: {}, lastBet: null, actionNumber: 0, seats: {}, board: [], pot: 0, acting: null, winners: [], hands: {} });
+const emptyView = (): View => ({ button: 0, stacks: null, announcement: "Waiting for the deal", history: [], bestFive: {}, streetBets: {}, lastBet: null, actionNumber: 0, seats: {}, board: [], pot: 0, acting: null, winners: [], hands: {}, handDetails: {}, pots: [] });
 
 function label(e: Extract<PokerEvent, { type: "action" }>): string {
   const { action, amount } = e;
@@ -56,7 +59,7 @@ function label(e: Extract<PokerEvent, { type: "action" }>): string {
 }
 
 function apply(view: View, events: PokerEvent[], names: string[]): View {
-  const v: View = { ...view, seats: { ...view.seats }, streetBets: { ...view.streetBets }, stacks: view.stacks?.slice() ?? null };
+  const v: View = { ...view, history: [...view.history], seats: { ...view.seats }, streetBets: { ...view.streetBets }, stacks: view.stacks?.slice() ?? null };
   const seat = (i: number) => (v.seats[i] = v.seats[i] ?? { cards: [], bubble: "", allIn: false });
   for (const e of events) {
     switch (e.type) {
@@ -88,17 +91,24 @@ function apply(view: View, events: PokerEvent[], names: string[]): View {
         v.acting = null;
         break;
       case "showdown":
-        v.hands = e.hands; v.bestFive = e.best_five ?? {}; v.acting = null;
+        v.hands = e.hands; v.handDetails = e.hand_details ?? {};
+        v.bestFive = e.best_five ?? {}; v.acting = null;
         v.announcement = `Showdown · ${Object.entries(e.hands).map(([i, hand]) => `${names[Number(i)]}: ${hand}`).join(" · ")}`;
         for (const s of Object.keys(e.reveals)) seat(Number(s)).cards = e.reveals[Number(s)];
         break;
       case "award":
-        v.winners = e.winners; v.acting = null;
+        v.winners = e.winners; v.pots = e.pots ?? []; v.acting = null;
         v.streetBets = {}; v.lastBet = null; v.pot = 0;
         if (e.stacks) v.stacks = e.stacks.slice();
-        v.announcement = `${e.winners.map((w) => names[w]).join(" and ")} ${e.winners.length === 1 ? "wins" : "split"} the ${e.pot}-chip pot${e.winners.length === 1 && v.hands[e.winners[0]] ? ` with ${v.hands[e.winners[0]]}` : ""}`;
-        for (const w of e.winners) seat(w).bubble = "wins"; break;
+        if (v.pots.length > 1) {
+          v.announcement = `Showdown · ${v.pots.length} pot layers awarded`;
+        } else {
+          v.announcement = `${e.winners.map((w) => names[w]).join(" and ")} ${e.winners.length === 1 ? "wins" : "split"} the ${e.pot}-chip pot${e.winners.length === 1 && v.hands[e.winners[0]] ? ` with ${v.hands[e.winners[0]]}` : ""}`;
+        }
+        for (const w of e.winners) seat(w).bubble = v.pots.length > 1 ? "wins a pot layer" : "wins";
+        break;
     }
+    if (e.type !== "hole") v.history.push(v.announcement);
   }
   return v;
 }
@@ -160,30 +170,38 @@ function Seat({ view, index, name, kind, isYou, stack, compact }: {
         </div>
       )}
       {view.winners.includes(index) && (
-        <span className="pot-pushed" aria-label="Pot pushed to winner" title="Pot pushed to winner">
-          <span aria-hidden="true">● ● ●</span> Pot awarded
+        <span className="pot-pushed"
+          aria-label={view.pots.length > 1 ? "Won one or more pot layers" : "Pot pushed to winner"}
+          title={view.pots.length > 1 ? "Won one or more pot layers" : "Pot pushed to winner"}>
+          <span aria-hidden="true">● ● ●</span> {view.pots.length > 1 ? "Pot layer awarded" : "Pot awarded"}
         </span>
       )}
     </div>
   );
 }
 
-// --- No-Limit bet controls: presets + slider, in "raise TO" chips ----------------------
+// --- Sized-bet controls: presets + slider, in "raise TO" chips -------------------------
 function BetControls({ pending, busy, onRaise }: {
   pending: LivePending; busy: boolean; onRaise: (to: number) => void;
 }) {
-  const { minRaiseTo, maxRaiseTo, pot, toCall, streetContrib } = pending;
+  const { minRaiseTo, maxRaiseTo, pot, toCall, streetContrib, myStack, betting } = pending;
   const [raiseTo, setRaiseTo] = useState(minRaiseTo);
   useEffect(() => setRaiseTo(minRaiseTo), [minRaiseTo, maxRaiseTo]);
 
   const clamp = (v: number) => Math.max(minRaiseTo, Math.min(Math.round(v), maxRaiseTo));
   const base = streetContrib + toCall;      // street total after just calling
   const potAfterCall = pot + toCall;
+  const potPreset = clamp(base + potAfterCall);
+  const allInTo = myStack == null ? null : streetContrib + myStack;
+  const canGoAllIn = allInTo != null && maxRaiseTo >= allInTo;
+  const maxLabel = canGoAllIn ? "All-in" : betting === "pot_limit" ? "Max Pot" : "All-in";
   const presets = [
     { label: "Min", value: minRaiseTo },
     { label: "½ pot", value: clamp(base + Math.round(potAfterCall / 2)) },
-    { label: "Pot", value: clamp(base + potAfterCall) },
-    { label: "All-in", value: maxRaiseTo },
+    ...(betting === "pot_limit" && potPreset === maxRaiseTo ? [] : [
+      { label: "Pot", value: potPreset },
+    ]),
+    { label: maxLabel, value: maxRaiseTo },
   ];
   const allInOnly = minRaiseTo >= maxRaiseTo;
   const verb = toCall > 0 ? "Raise to" : "Bet";
@@ -193,7 +211,7 @@ function BetControls({ pending, busy, onRaise }: {
       <button className="scripted-btn" disabled={busy}
         style={{ background: ACTION_STYLE.raise.bg, color: ACTION_STYLE.raise.fg }}
         onClick={() => onRaise(maxRaiseTo)}>
-        All-in {maxRaiseTo}
+        {maxLabel} {maxRaiseTo}
       </button>
     );
   }
@@ -213,7 +231,7 @@ function BetControls({ pending, busy, onRaise }: {
       <button className="scripted-btn" disabled={busy}
         style={{ background: ACTION_STYLE.raise.bg, color: ACTION_STYLE.raise.fg }}
         onClick={() => onRaise(raiseTo)}>
-        {verb} {raiseTo}
+        {verb} {raiseTo}{betting === "pot_limit" && raiseTo === maxRaiseTo && maxLabel === "Max Pot" ? " · Max Pot" : ""}
       </button>
     </div>
   );
@@ -233,6 +251,30 @@ function LiveTableBody({
 }) {
   const multiway = players > 2;
   const opponents = Array.from({ length: players - 1 }, (_, i) => i + 1);
+  const multiplePotLayers = view.pots.length > 1;
+  const logRef = useRef<HTMLOListElement | null>(null);
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [view.history.length]);
+  const handLabel = (seat: number) => view.handDetails[seat] ?? view.hands[seat] ?? "hand not shown";
+  const potLabel = (pot: PotLayerAward, index: number) => {
+    if (index === 0) return "Main pot";
+    return pot.eligible?.length === 1 ? "Only-eligible layer" : `Side pot ${index}`;
+  };
+  const potOutcome = (pot: PotLayerAward) => {
+    const winners = pot.winners.map((winner) => names[winner]).join(" and ");
+    const winningHand = pot.winners.length ? handLabel(pot.winners[0]) : "";
+    if (pot.winners.length > 1) {
+      return `Tie — split between ${winners}; same best hand: ${winningHand}.`;
+    }
+    if (pot.eligible?.length === 1) {
+      return `Only eligible: ${winners}. No hand comparison for this layer.`;
+    }
+    if (pot.winners.length === 1) {
+      return `Awarded to ${winners}${winningHand ? ` with ${winningHand}` : ""}.`;
+    }
+    return "No winner recorded.";
+  };
   return (
     <>
       <div className="play-announcement" role="status" aria-live="polite">
@@ -259,7 +301,7 @@ function LiveTableBody({
               ))
               : <span style={{ color: "#bfe9d0" }}>— preflop —</span>}
           </div>
-          <div className="pot">{view.winners.length ? "POT AWARDED" : `POT ${view.pot}`} <Chips amount={view.pot} pot /></div>
+          <div className="pot">{view.winners.length ? (multiplePotLayers ? "POT LAYERS AWARDED" : "POT AWARDED") : `POT ${view.pot}`} <Chips amount={view.pot} pot /></div>
           <Seat view={view} index={0} name="You" kind="you" isYou={true}
             stack={view.stacks ? view.stacks[0] : null} />
           {view.lastBet != null && (
@@ -273,13 +315,53 @@ function LiveTableBody({
         </div>
       </div>
 
+      {view.history.length > 0 && (
+        <div className="hand-log">
+          <b>Hand log</b>
+          <ol ref={logRef} aria-label="Actions this hand">
+            {view.history.map((line, i) => <li key={i}>{line}</li>)}
+          </ol>
+        </div>
+      )}
       {view.winners.length > 0 && Object.keys(view.hands).length > 0 && (
         <div className="showdown-summary">
-          {Object.entries(view.hands).map(([seat, hand]) => (
-            <div key={seat} className={view.winners.includes(Number(seat)) ? "showdown-winner" : "showdown-loser"}>
-              <b>{names[Number(seat)]}</b> — {hand}{view.winners.includes(Number(seat)) ? " · wins" : ""}
+          <div className="showdown-hands">
+            {Object.entries(view.hands).map(([seat, hand]) => {
+              const seatIndex = Number(seat);
+              const won = view.winners.includes(seatIndex);
+              return (
+                <div key={seat} className={won ? "showdown-winner" : "showdown-loser"}>
+                  <b>{names[seatIndex]}</b> — {view.handDetails[seatIndex] ?? hand}
+                  {won ? ` · ${multiplePotLayers ? "won one or more pot layers" : "wins"}` : ""}
+                </div>
+              );
+            })}
+          </div>
+          {view.pots.length > 0 && (
+            <div className="showdown-pot-awards">
+              <b className="showdown-pot-heading">{multiplePotLayers ? "Pot awards by layer" : "Pot award"}</b>
+              {view.pots.map((pot, index) => {
+                const eligible = pot.eligible ?? [];
+                return (
+                  <div key={index} className="showdown-pot-layer">
+                    <b>{potLabel(pot, index)} · {pot.amount} chips</b>
+                    {eligible.length > 0 && (
+                      <div className="pot-eligible">
+                        <b>Eligible:</b>{" "}
+                        {eligible.map((seatIndex, eligibleIndex) => (
+                          <span key={seatIndex}>
+                            {eligibleIndex > 0 ? "; " : ""}
+                            <strong>{names[seatIndex]}</strong> — {handLabel(seatIndex)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="pot-award-outcome">{potOutcome(pot)}</div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
           <small>Bright cards make the best five-card hand; dimmed cards don't play.</small>
         </div>
       )}
@@ -315,7 +397,7 @@ function LiveTableBody({
               </button>
             ))}
             {pending.legal.includes("raise") && (
-              pending.betting === "no_limit"
+              pending.betting !== "limit"
                 ? <BetControls pending={pending} busy={busy} onRaise={onRaise} />
                 : (
                   <button className="scripted-btn" disabled={busy}
@@ -342,7 +424,7 @@ export function LivePlay({
   bridgeRef: MutableRefObject<EngineBridge | null>;
   ready: boolean;
   opponents?: string[];      // fixed multiway table (no opponent picker)
-  betting?: "limit" | "no_limit";
+  betting?: BettingFormat;
   stack?: number;            // chips per seat per hand
   carry?: boolean;           // survival: your stack persists until you bust
   fixedOpponent?: string;    // single fixed opponent (Academy lessons)
@@ -374,7 +456,10 @@ export function LivePlay({
     if (p.error) { setError(p.error); return; }
     setError(null);
     setPending(null);
-    if (fresh) setView(emptyView());
+    if (fresh) {
+      setView(emptyView());
+      setDone(null); // the previous result must not cover the next hand's animation
+    }
     // Engine responses can contain several opponent actions and an entire all-in
     // runout. Show each meaningful event before allowing the next human decision.
     // Hole-card events are displayed immediately; streets and actions hold long
@@ -419,7 +504,7 @@ export function LivePlay({
     guard(() => bridgeRef.current!.humanNew({
       opponents: table,
       fixedButton,
-      config: betting === "no_limit" ? { betting } : undefined,
+      config: betting === "limit" ? undefined : { betting },
       stack, carry,
     }), true);
   };
@@ -466,6 +551,7 @@ export function LivePlay({
         {ready ? (started ? "↺ New match" : "▶ Sit down") : "engine loading…"}
       </button>
       {score}
+      <span className="opponent-tendency">{OPPONENTS.find((o) => o.key === opponent)?.tendency}</span>
     </div>
   );
 

@@ -42,13 +42,14 @@ class GameState:
     legal_actions: List[str] = field(default_factory=list)  # what you may return now
 
     # --- Betting format & stacks (None stack fields = unlimited/limit-classic) ---
-    betting: str = "limit"                  # "limit" | "no_limit"
+    betting: str = "limit"                  # "limit" | "no_limit" | "pot_limit"
     current_bet: int = 0                    # the street's current bet level (to match)
     my_street_contrib: int = 0              # chips I have put in THIS street
     my_stack: Optional[int] = None          # my remaining chips (None = unlimited)
     stacks: Optional[List[int]] = None      # remaining chips per seat (None = unlimited)
     # Raise window, in "raise TO" terms (total street commitment after raising).
-    # In Limit min == max (fixed size); in No-Limit max is an all-in.
+    # Limit fixes min == max; No-Limit caps at all-in; Pot-Limit caps at the smaller
+    # of the all-in amount and the maximum pot-sized raise-to after calling.
     min_raise_to: int = 0
     max_raise_to: int = 0
 

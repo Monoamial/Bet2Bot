@@ -105,3 +105,66 @@ def best_five(cards: List[Card]) -> List[Card]:
 def category_name(score: Score) -> str:
     """Human-readable name for a score's hand category (for logging)."""
     return CATEGORY_NAMES[score[0]]
+
+
+_RANK_NAMES = {
+    14: "Ace", 13: "King", 12: "Queen", 11: "Jack", 10: "Ten",
+    9: "Nine", 8: "Eight", 7: "Seven", 6: "Six", 5: "Five",
+    4: "Four", 3: "Three", 2: "Two",
+}
+_RANK_SYMBOLS = {
+    14: "A", 13: "K", 12: "Q", 11: "J", 10: "T", 9: "9",
+    8: "8", 7: "7", 6: "6", 5: "5", 4: "4", 3: "3", 2: "2",
+}
+
+
+def _rank_name(rank: int) -> str:
+    return _RANK_NAMES[rank]
+
+
+def _rank_symbols(ranks: Tuple[int, ...]) -> str:
+    return "-".join(_RANK_SYMBOLS[rank] for rank in ranks)
+
+
+def describe_score(score: Score) -> str:
+    """Explain a hand from its actual evaluator score, including every tiebreaker.
+
+    The score tuple is also what decides hand order in ``evaluate``. Keeping this
+    explanation score-based handles category-specific ordering (notably full houses
+    and wheels) without trying to infer strength from the category label alone.
+    """
+    category, *ranks = score
+    name = category_name(score)
+
+    if category == 0:
+        high, *kickers = ranks
+        return f"{name} — {_rank_name(high)} high; {_rank_symbols(tuple(kickers))} kickers"
+    if category == 1:
+        pair, *kickers = ranks
+        return f"{name} — pair of {_rank_name(pair)}s; {_rank_symbols(tuple(kickers))} kickers"
+    if category == 2:
+        high_pair, low_pair, kicker = ranks
+        return (
+            f"{name} — {_rank_name(high_pair)}s and {_rank_name(low_pair)}s; "
+            f"{_rank_name(kicker)} kicker"
+        )
+    if category == 3:
+        trips, *kickers = ranks
+        return f"{name} — three {_rank_name(trips)}s; {_rank_symbols(tuple(kickers))} kickers"
+    if category == 4:
+        high = ranks[0]
+        wheel = " (wheel)" if high == 5 else ""
+        return f"{name} — {_rank_name(high)}-high straight{wheel}"
+    if category == 5:
+        return f"{name} — {_rank_symbols(tuple(ranks))}"
+    if category == 6:
+        trips, pair = ranks
+        return f"{name} — {_rank_name(trips)}s full of {_rank_name(pair)}s"
+    if category == 7:
+        quads, kicker = ranks
+        return f"{name} — four {_rank_name(quads)}s; {_rank_name(kicker)} kicker"
+    if category == 8:
+        high = ranks[0]
+        wheel = " (wheel)" if high == 5 else ""
+        return f"{name} — {_rank_name(high)}-high straight flush{wheel}"
+    raise ValueError(f"invalid hand category: {category}")

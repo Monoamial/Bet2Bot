@@ -1,13 +1,21 @@
 // TypeScript mirrors of the JSON-able structures the Python engine returns.
 // See poker/engine.py (event schema) and poker/game_api.py (run_level result).
 
+export type BettingFormat = "limit" | "no_limit" | "pot_limit";
+
+export interface PotLayerAward {
+  amount: number;
+  winners: number[];
+  eligible?: number[];
+}
+
 export type PokerEvent =
   | { type: "blinds"; button: number; sb_seat: number; sb: number; bb_seat: number; bb: number; players: number; stacks?: number[] }
   | { type: "hole"; seat: number; cards: [string, string] }
   | { type: "action"; seat: number; street: string; action: string; amount: number; pot: number; to_call: number; explain?: string | null; raise_to?: number; all_in?: boolean; stack?: number }
   | { type: "board"; street: string; cards: string[]; board: string[] }
-  | { type: "showdown"; board: string[]; reveals: Record<number, string[]>; hands: Record<number, string>; best_five?: Record<number, string[]> }
-  | { type: "award"; winners: number[]; pot: number; net: number[]; pots?: { amount: number; winners: number[] }[]; stacks?: number[] };
+  | { type: "showdown"; board: string[]; reveals: Record<number, string[]>; hands: Record<number, string>; hand_details?: Record<number, string>; best_five?: Record<number, string[]> }
+  | { type: "award"; winners: number[]; pot: number; net: number[]; pots?: PotLayerAward[]; stacks?: number[] };
 
 export interface BotSummaryRow {
   name: string;
@@ -83,19 +91,19 @@ export interface LivePending {
   hole: string[];
   board: string[];
   betSize: number;
-  betting: "limit" | "no_limit";
+  betting: BettingFormat;
   currentBet: number;
   streetContrib: number;          // chips the human already put in this street
   myStack: number | null;         // null = unlimited (classic mode)
   minRaiseTo: number;             // raise window, in "raise TO" street totals
-  maxRaiseTo: number;             // (max = all-in; min == max in limit)
+  maxRaiseTo: number;             // all-in in No-Limit; all-in or pot cap in Pot-Limit
 }
 
 export interface InteractivePayload {
   error?: string;
   events: PokerEvent[];
   pending: LivePending | null;
-  done: { winners: number[]; handNet: number; youWon: boolean; pots?: { amount: number; winners: number[] }[] } | null;
+  done: { winners: number[]; handNet: number; youWon: boolean; pots?: PotLayerAward[] } | null;
   net: number[];
   handsPlayed: number;
   button: number;
@@ -112,7 +120,7 @@ export interface HumanNewOptions {
   opponents: string[];            // roster keys, seats 1..n in order
   seed?: number;
   fixedButton?: 0 | 1;
-  config?: Record<string, unknown>; // GameConfig fields, e.g. { betting: "no_limit" }
+  config?: Record<string, unknown>; // GameConfig fields, e.g. { betting: "no_limit" | "pot_limit" }
   stack?: number;                 // chips per seat per hand
   carry?: boolean;                // survival: the human's stack carries over
 }

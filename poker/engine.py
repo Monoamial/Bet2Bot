@@ -19,7 +19,7 @@ from poker.action import (
     CALL, CHECK, FOLD, RAISE, is_legal, legal_actions, parse_action, sanitize,
 )
 from poker.cards import Card, Deck
-from poker.evaluator import best_five, category_name, evaluate
+from poker.evaluator import best_five, category_name, describe_score, evaluate
 from poker.state import STREETS, GameState, HandSummary
 
 # Sentinel for "no stack limit": large enough that no legal sequence of Limit or
@@ -54,10 +54,12 @@ class GameConfig:
     """Betting structure for a Hold'em table.
 
     `betting` selects the format:
-      * "limit"    — fixed raise sizes (small_bet/big_bet), raise_cap per street.
-      * "no_limit" — raises carry an amount ("raise TO X" chips this street);
-                     min raise = the last raise size (or the big blind), max = all-in.
-                     Requires a stack to be meaningful, but tolerates none.
+      * "limit"     — fixed raise sizes (small_bet/big_bet), raise_cap per street.
+      * "no_limit"  — raises carry an amount ("raise TO X" chips this street);
+                      min raise = the last raise size (or the big blind), max = all-in.
+      * "pot_limit" — same minimum as No-Limit, but max raise-to is capped at a
+                      pot-sized raise after calling (or the all-in, if smaller).
+    No-Limit and Pot-Limit tolerate unlimited stacks, but stacks are recommended.
     `stack` is the starting stack per seat each hand (None = unlimited — classic
     teaching mode). Drivers may instead pass explicit per-seat `stacks` to
     play_hand(_gen) for carried stacks (sessions).
@@ -68,7 +70,7 @@ class GameConfig:
     small_blind: int = 1
     big_blind: int = 2
     raise_cap: int = 4          # limit: max bets+raises per street (1 bet + 3 raises)
-    betting: str = "limit"      # "limit" | "no_limit"
+    betting: str = "limit"      # "limit" | "no_limit" | "pot_limit"
     stack: Optional[int] = None  # starting stack per seat (None = unlimited)
 
 
@@ -93,7 +95,7 @@ class HandResult:
     # Ordered, JSON-able events for animating/replaying the hand (only populated when
     # play_hand is called with record_events=True). See _EVENT TYPES_ in play_hand.
     events: List[dict] = field(default_factory=list)
-    # Pot layers awarded (one entry when no all-ins): [{"amount", "winners"}].
+    # Awarded pot layers, including showdown eligibility where there are side pots.
     pots: List[dict] = field(default_factory=list)
     # Remaining stack per seat after the hand (None when stacks are unlimited).
     final_stacks: Optional[List[int]] = None
@@ -130,8 +132,10 @@ def play_hand_gen(
       action   {seat, street, action, amount, pot, to_call, explain,
                 raise_to?, all_in?, stack?}
       board    {street, cards:[str...], board:[str...]}
-      showdown {board:[str...], reveals:{seat:[str,str]}, hands:{seat:name}}
-      award    {winners:[seat...], pot, net:[int...], pots:[{amount, winners}]}
+      showdown {board:[str...], reveals:{seat:[str,str]}, hands:{seat:name},
+                best_five:{seat:[str...]}, hand_details:{seat:score explanation}}
+      award    {winners:[seat...], pot, net:[int...],
+                pots:[{amount, winners, eligible?}]}
     """
     deck = Deck(rng)
     deck.shuffle()
@@ -149,6 +153,8 @@ def play_hand_gen(
     stacks_init = list(stack)
 
     no_limit = config.betting == "no_limit"
+    pot_limit = config.betting == "pot_limit"
+    variable_betting = no_limit or pot_limit
 
     contrib = [0] * n          # total chips committed this hand, per seat
     folded = [False] * n
@@ -217,7 +223,7 @@ def play_hand_gen(
         else:
             current_bet = 0
             raises_so_far = 0
-            last_raise = config.big_blind   # NL: min open = one big blind
+            last_raise = config.big_blind   # variable betting: min open = one big blind
             first = (button + 1) % n     # left of button (heads-up: the BB)
 
         # Build the action queue clockwise from `first`, skipping folded seats.
@@ -239,20 +245,24 @@ def play_hand_gen(
             ):
                 continue  # no one left who could call a bet: betting is over
 
+            # The raise window, in "raise TO" (total street commitment) terms.
+            all_in_to = street_contrib[seat] + stack[seat]
+            pot_after_call = sum(contrib) + to_call
+            pot_raise_to = street_contrib[seat] + to_call + pot_after_call
+            if variable_betting:
+                min_raise_to = min(current_bet + last_raise, all_in_to)
+                max_raise_to = min(all_in_to, pot_raise_to) if pot_limit else all_in_to
+            else:
+                min_raise_to = min(current_bet + bet_size, all_in_to)
+                max_raise_to = min_raise_to
+
             legal = legal_actions(
                 to_call, raises_so_far, config.raise_cap,
                 stack=stack[seat] if limited else None,
                 betting=config.betting,
+                min_raise_to=min_raise_to,
+                max_raise_to=max_raise_to,
             )
-
-            # The raise window, in "raise TO" (total street commitment) terms.
-            all_in_to = street_contrib[seat] + stack[seat]
-            if no_limit:
-                min_raise_to = min(current_bet + last_raise, all_in_to)
-                max_raise_to = all_in_to
-            else:
-                min_raise_to = min(current_bet + bet_size, all_in_to)
-                max_raise_to = min_raise_to
 
             state = GameState(
                 hole_cards=list(hole[seat]),
@@ -303,18 +313,18 @@ def play_hand_gen(
                 if preflop:
                     result.vpip_seats.add(seat)
             elif action == RAISE:
-                if no_limit:
+                if variable_betting:
                     if req_amount is None:
-                        # Default sizing: a pot-sized raise (pot after calling).
-                        pot_now = sum(contrib)
-                        req_amount = street_contrib[seat] + to_call + (pot_now + to_call)
+                        # A bare raise is pot-sized in both variable formats; Pot-Limit
+                        # also uses this amount as its hard raise-to ceiling.
+                        req_amount = pot_raise_to
                     target = max(min_raise_to, min(req_amount, max_raise_to))
                 else:
                     target = min_raise_to  # fixed size (may be an all-in for less)
                 paid = pay(seat, target - street_contrib[seat])
                 street_contrib[seat] += paid
                 raise_to = street_contrib[seat]
-                last_raise = max(raise_to - current_bet, last_raise if no_limit else 0)
+                last_raise = max(raise_to - current_bet, last_raise if variable_betting else 0)
                 current_bet = raise_to
                 raises_so_far += 1
                 result.bet_raise_count[seat] += 1
@@ -370,14 +380,19 @@ def play_hand_gen(
     for s in range(n):
         result.net[s] -= contrib[s]
 
-    def award(amount: int, winners: List[int]) -> None:
+    def award(
+        amount: int, winners: List[int], eligible: Optional[List[int]] = None,
+    ) -> None:
         """Split `amount` among `winners`; odd chip to the earliest seat left of
-        the button (the standard rule)."""
+        the button (the standard rule). Record eligibility for showdown layers."""
         share, remainder = divmod(amount, len(winners))
         ordered = [s for s in _order_from((button + 1) % n, n) if s in winners]
         for i, s in enumerate(ordered):
             result.net[s] += share + (remainder if i == 0 else 0)
-        result.pots.append({"amount": amount, "winners": list(winners)})
+        pot = {"amount": amount, "winners": list(winners)}
+        if eligible is not None:
+            pot["eligible"] = list(eligible)
+        result.pots.append(pot)
 
     if len(survivors) == 1:
         winners = survivors
@@ -394,6 +409,7 @@ def play_hand_gen(
         ev({"type": "showdown", "board": [str(c) for c in board],
             "reveals": {s: [str(c) for c in hole[s]] for s in survivors},
             "hands": {s: category_name(scores[s]) for s in survivors},
+            "hand_details": {s: describe_score(scores[s]) for s in survivors},
             "best_five": {s: [str(c) for c in best_five(hole[s] + board)]
                           for s in survivors}})
 
@@ -420,7 +436,7 @@ def play_hand_gen(
                 continue
             best = max(scores[s] for s in eligible)
             layer_winners = [s for s in eligible if scores[s] == best]
-            award(amount, layer_winners)
+            award(amount, layer_winners, eligible)
             won.update(layer_winners)
         winners = [s for s in _order_from((button + 1) % n, n) if s in won]
         result.won_showdown_seats = set(winners)

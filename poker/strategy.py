@@ -22,11 +22,16 @@ street `default` is used. Supported `when` keys:
     position : "ip" | "oop"               # in position (acts last) or not
     oppType  : "loose" | "tight" | "unknown"   # from showdown history
     potOdds  : "cheap" | "expensive" | "na"    # price to call (cheap = ~2:1 or better)
+
+An optional `raiseSize` on a raise rule can be "small" (half-pot), "pot", or
+"overbet" (2x pot). In No-Limit it sizes the raise-to from the pot after calling;
+Limit ignores it and keeps the fixed raise size. Without it, the existing default
+pot-sized No-Limit raise is unchanged.
 """
 
 from typing import Dict, List, Optional
 
-from poker.action import CALL, CHECK, FOLD, RAISE
+from poker.action import CALL, CHECK, FOLD, RAISE, parse_action
 from poker.evaluator import evaluate
 from poker.state import GameState, HandSummary
 
@@ -46,6 +51,12 @@ TIER_LABEL = {
     "pair": "A pair",
     "twoPairPlus": "Two pair / trips",
     "monster": "Monster",
+}
+
+RAISE_SIZE_LABELS = {
+    "small": "½ pot",
+    "pot": "pot",
+    "overbet": "2× pot",
 }
 
 
@@ -129,7 +140,14 @@ class StrategyBot:
             grid = self.strategy.get("preflop", {})
             cls = hand_class(state.hole_cards)
             action = grid.get(cls, FOLD)
-            self.last_decision = f"Preflop {cls} → {action}"
+            raise_size = self.strategy.get("preflopRaiseSize")
+            decision = f"Preflop {cls} → {action}"
+            if action == RAISE and state.betting == "no_limit":
+                size_label = RAISE_SIZE_LABELS.get(raise_size) if isinstance(raise_size, str) else None
+                if size_label:
+                    decision += f" ({size_label})"
+                action = self._sized_action(action, raise_size, state)
+            self.last_decision = decision
             return self._legalize(action, state)
 
         policy = self.strategy.get(state.street) or {}
@@ -144,7 +162,16 @@ class StrategyBot:
         for rule in policy.get("rules", []):
             if self._matches(rule.get("when", {}), ctx):
                 action = rule.get("action", FOLD)
-                self.last_decision = f"{TIER_LABEL.get(tier, tier)} → {action}"
+                raise_size = rule.get("raiseSize")
+                decision = f"{TIER_LABEL.get(tier, tier)} → {action}"
+                size_label = (
+                    RAISE_SIZE_LABELS.get(raise_size)
+                    if isinstance(raise_size, str) else None
+                )
+                if action == RAISE and state.betting == "no_limit" and size_label:
+                    decision = f"{decision} ({size_label})"
+                self.last_decision = decision
+                action = self._sized_action(action, raise_size, state)
                 return self._legalize(action, state)
         action = policy.get("default", CHECK)
         self.last_decision = f"{TIER_LABEL.get(tier, tier)} → {action}"
@@ -155,14 +182,37 @@ class StrategyBot:
         return all(ctx.get(k) == v for k, v in when.items())
 
     @staticmethod
+    def _sized_action(action: str, raise_size: Optional[str], state: GameState) -> str:
+        """Return a No-Limit raise-to action for an explicit size; otherwise pass through."""
+        if action != RAISE or state.betting != "no_limit":
+            return action
+
+        pot_after_call = state.pot + state.to_call
+        if raise_size == "small":
+            raise_amount = (pot_after_call + 1) // 2
+        elif raise_size == "pot":
+            raise_amount = pot_after_call
+        elif raise_size == "overbet":
+            raise_amount = 2 * pot_after_call
+        else:
+            # Missing sizing keeps the existing bare-raise, pot-sized default.
+            return action
+
+        raise_to = state.my_street_contrib + state.to_call + raise_amount
+        return f"{RAISE}:{raise_to}"
+
+    @staticmethod
     def _legalize(action: str, state: GameState) -> str:
         """Coerce an intended action to a legal one (the engine also sanitizes)."""
         legal = state.legal_actions
-        if action in legal:
-            return action
-        if action == RAISE:
+        verb, amount = parse_action(action)
+        if verb in legal:
+            if verb == RAISE and amount is not None:
+                return f"{RAISE}:{amount}"
+            return verb
+        if verb == RAISE:
             return CALL if CALL in legal else CHECK
-        if action == CALL:
+        if verb == CALL:
             return CHECK if CHECK in legal else FOLD
         # check/fold requested but illegal (e.g. fold for free) -> safest legal move
         return CHECK if CHECK in legal else (CALL if CALL in legal else FOLD)

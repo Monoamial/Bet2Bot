@@ -1,6 +1,6 @@
 import {
-  ACTION_STYLE, Action, AdvancedRule, OppType, PotOdds, Position, TIER_INFO,
-  TIER_ORDER, Tier, Unlocks,
+  ACTION_STYLE, Action, AdvancedRule, OppType, PotOdds, Position, RaiseSize,
+  RAISE_SIZES, TIER_INFO, TIER_ORDER, Tier, Unlocks,
 } from "../strategy/model";
 
 const ACTIONS: Action[] = ["fold", "check", "call", "raise"];
@@ -26,11 +26,12 @@ function Select<T extends string>({
 }
 
 export function AdvancedRules({
-  rules, onChange, unlocks,
+  rules, onChange, unlocks, betting = "limit",
 }: {
   rules: AdvancedRule[];
   onChange: (rules: AdvancedRule[]) => void;
   unlocks: Unlocks;
+  betting?: "limit" | "no_limit";
 }) {
   function update(i: number, patch: Partial<AdvancedRule>) {
     onChange(rules.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -93,6 +94,17 @@ export function AdvancedRules({
           >
             {ACTIONS.map((a) => <option key={a} value={a}>{ACTION_STYLE[a].label}</option>)}
           </select>
+          {betting === "no_limit" && r.action === "raise" && (
+            <select
+              className="adv-select"
+              aria-label={`Raise size for advanced rule ${i + 1}`}
+              title="Used in No-Limit; Classic Limit ignores sizing."
+              value={r.raiseSize ?? "pot"}
+              onChange={(e) => update(i, { raiseSize: e.target.value as RaiseSize })}
+            >
+              {RAISE_SIZES.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}
+            </select>
+          )}
           <button className="adv-remove" onClick={() => remove(i)} aria-label="Remove rule">×</button>
         </div>
       ))}

@@ -22,6 +22,9 @@ from poker.bots import (
     pot_odds_caller,
     rock,
     tight_aggressive,
+    over_folder,
+    river_bluffer,
+    trapper,
 )
 from poker.engine import GameConfig
 from poker.interactive import InteractiveMatch
@@ -38,6 +41,9 @@ OPPONENTS: Dict[str, Callable[[], object]] = {
     "position_aware": lambda: position_aware,
     "tight_aggressive": lambda: tight_aggressive,
     "profiler": lambda: ProfilingBot(),
+    "river_bluffer": lambda: river_bluffer,
+    "over_folder": lambda: over_folder,
+    "trapper": lambda: trapper,
 }
 
 

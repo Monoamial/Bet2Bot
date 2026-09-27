@@ -2,6 +2,12 @@
 // into the engine's JSON policy and to compute display stats.
 
 export type Action = "fold" | "check" | "call" | "raise";
+export type RaiseSize = "small" | "pot" | "overbet";
+export const RAISE_SIZES: { value: RaiseSize; label: string }[] = [
+  { value: "small", label: "Small (½ pot)" },
+  { value: "pot", label: "Pot" },
+  { value: "overbet", label: "Overbet (2× pot)" },
+];
 export type Tier = "monster" | "twoPairPlus" | "pair" | "nothing";
 
 export type Position = "ip" | "oop";
@@ -15,16 +21,24 @@ export interface AdvancedRule {
   oppType?: OppType;
   potOdds?: PotOdds;
   action: Action;
+  raiseSize?: RaiseSize;
 }
 
 export interface StreetPolicyData {
   // per-tier action, split by whether we're first to act or facing a bet
-  table: Record<Tier, { first: Action; facing: Action }>;
+  // Sizing is optional so saved strategies from before No-Limit remain valid.
+  table: Record<Tier, {
+    first: Action;
+    facing: Action;
+    firstRaiseSize?: RaiseSize;
+    facingRaiseSize?: RaiseSize;
+  }>;
   advanced?: AdvancedRule[];
 }
 
 export interface Strategy {
   preflop: Record<string, Action>; // 169 hand classes -> action
+  preflopRaiseSize?: RaiseSize;  // optional table-wide NL preflop size for raised cells
   flop: StreetPolicyData;
   turn: StreetPolicyData;
   river: StreetPolicyData;
@@ -143,18 +157,28 @@ export function presetPreflop(kind: "tight" | "loose"): Record<string, Action> {
 }
 
 function compileStreet(p: StreetPolicyData) {
-  const rules: { when: Record<string, unknown>; action: Action }[] = [];
+  const rules: {
+    when: Record<string, unknown>;
+    action: Action;
+    raiseSize?: RaiseSize;
+  }[] = [];
+  function addRule(when: Record<string, unknown>, action: Action, raiseSize?: RaiseSize) {
+    const rule: (typeof rules)[number] = { when, action };
+    if (action === "raise" && raiseSize) rule.raiseSize = raiseSize;
+    rules.push(rule);
+  }
+
   // Advanced conditional rules take priority over the base table.
   for (const r of p.advanced ?? []) {
     const when: Record<string, unknown> = { handTier: r.tier };
     if (r.position) when.position = r.position;
     if (r.oppType) when.oppType = r.oppType;
     if (r.potOdds) when.potOdds = r.potOdds;
-    rules.push({ when, action: r.action });
+    addRule(when, r.action, r.raiseSize);
   }
   for (const t of TIER_ORDER) {
-    rules.push({ when: { handTier: t, facingBet: true }, action: p.table[t].facing });
-    rules.push({ when: { handTier: t, facingBet: false }, action: p.table[t].first });
+    addRule({ handTier: t, facingBet: true }, p.table[t].facing, p.table[t].facingRaiseSize);
+    addRule({ handTier: t, facingBet: false }, p.table[t].first, p.table[t].firstRaiseSize);
   }
   return { rules, default: "check" as Action };
 }
@@ -163,6 +187,7 @@ function compileStreet(p: StreetPolicyData) {
 export function compileStrategy(s: Strategy) {
   return {
     preflop: s.preflop,
+    ...(s.preflopRaiseSize ? { preflopRaiseSize: s.preflopRaiseSize } : {}),
     flop: compileStreet(s.flop),
     turn: compileStreet(s.turn),
     river: compileStreet(s.river),
@@ -171,4 +196,28 @@ export function compileStrategy(s: Strategy) {
 
 export function clone(s: Strategy): Strategy {
   return JSON.parse(JSON.stringify(s));
+}
+
+/** Apply an Academy bridge to a copy of the current policy, preserving unrelated work.
+ * The basic bridge is only navigation; follow-up lessons explicitly opt into changes.
+ */
+export function applyLessonBridge(current: Strategy, bridgeId: string): {
+  strategy: Strategy; description: string | null;
+} {
+  const strategy = clone(current);
+  if (bridgeId === "value-bridge") {
+    for (const street of ["flop", "turn", "river"] as const) {
+      for (const tier of ["monster", "twoPairPlus", "pair"] as const) {
+        strategy[street].table[tier].first = "raise";
+      }
+    }
+    return { strategy, description: "Value rule added: bet a pair or better on every street when checked to." };
+  }
+  if (bridgeId === "discipline-bridge") {
+    for (const street of ["flop", "turn", "river"] as const) {
+      strategy[street].table.pair.facing = "fold";
+    }
+    return { strategy, description: "Discipline rule added: fold one pair facing a bet on every street. Build your own preflop steal range next." };
+  }
+  return { strategy: current, description: null };
 }

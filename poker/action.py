@@ -1,16 +1,17 @@
 """Actions a bot can take, plus parsing, legality checking, and sanitizing.
 
 Bots return one of the four action verbs below. In *Limit* games a raise has a fixed
-size, so the verb alone is enough. In *No-Limit* games a raise may carry an amount —
-the TOTAL number of chips the actor wants committed this street ("raise TO X"):
+size, so the verb alone is enough. In *No-Limit* and *Pot-Limit* games a raise may
+carry an amount — the TOTAL number of chips the actor wants committed this street
+("raise TO X"):
 
     "raise"            -> the engine picks a default size (a pot-sized raise)
     "raise:12"         -> raise to 12 chips this street
     ("raise", 12)      -> same, as a tuple (also accepts lists)
 
 Amounts are clamped by the engine to the legal window [min_raise_to, max_raise_to]
-(max is an all-in), so a bot can never raise an illegal amount — only an illegal
-*verb* counts as a mistake.
+(max is an all-in in No-Limit and the smaller of the all-in or pot-sized raise in
+Pot-Limit), so a bot cannot choose an illegal raise amount.
 """
 
 from typing import List, Optional, Tuple
@@ -65,13 +66,18 @@ def legal_actions(
     raise_cap: int,
     stack: Optional[int] = None,
     betting: str = "limit",
+    min_raise_to: Optional[int] = None,
+    max_raise_to: Optional[int] = None,
 ) -> List[str]:
     """Return the action verbs that are legal in the current spot.
 
     - Facing a bet (to_call > 0): FOLD or CALL (a short stack calls all-in for less).
     - No bet (to_call == 0): CHECK.
     - RAISE requires chips beyond the call (stack > to_call, when stacks apply) and,
-      in Limit only, that the per-street raise cap has not been reached.
+      in Limit only, that the per-street raise cap has not been reached. If the raise
+      window is supplied, RAISE also requires at least one legal raise-to amount; this
+      matters in Pot-Limit when the pot cap is below the minimum full raise (a short
+      all-in remains legal because its minimum is capped at the all-in amount).
     """
     actions: List[str] = []
     if to_call > 0:
@@ -82,6 +88,9 @@ def legal_actions(
 
     can_raise = stack is None or stack > to_call
     if betting == "limit" and raises_so_far >= raise_cap:
+        can_raise = False
+    if (min_raise_to is not None and max_raise_to is not None
+            and max_raise_to < min_raise_to):
         can_raise = False
     if can_raise:
         actions.append(RAISE)

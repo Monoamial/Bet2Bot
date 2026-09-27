@@ -12,6 +12,9 @@ const PALETTE: Record<string, Palette> = {
   maniac: { ring: "#fb923c", face: "#3a2410", glow: "#ffc08a" },
   rock: { ring: "#94a3b8", face: "#2a2f36", glow: "#cbd5e1" },
   folder: { ring: "#64748b", face: "#242a31", glow: "#a9b4c2" },
+  river_bluffer: { ring: "#c084fc", face: "#322044", glow: "#efb7ff" },
+  over_folder: { ring: "#9ca3af", face: "#252c33", glow: "#b5e6e2" },
+  trapper: { ring: "#14b8a6", face: "#123d37", glow: "#facc6b" },
   default: { ring: "#8b96a5", face: "#242a31", glow: "#c2cad4" },
 };
 
@@ -78,6 +81,31 @@ function Features({ kind, glow }: { kind: string; glow: string }) {
           <rect x={40} y={33} width={6} height={6} fill={eye} />
           <path d="M28 47 h16" stroke={line} strokeWidth={3} strokeLinecap="round" />
           <path d="M22 24 l4 6 M50 26 l-4 5" stroke="#00000055" strokeWidth={2} />
+        </g>
+      );
+    case "river_bluffer":
+      return (
+        <g>
+          {/* broad confident grin, but one eye is only a bluffing wink */}
+          <circle cx={29} cy={35} r={3} fill={eye} />
+          <path d="M39 35 q5 -4 9 0" fill="none" stroke={eye} strokeWidth={3} strokeLinecap="round" />
+          <path d="M26 45 q10 11 20 0" fill="none" stroke={line} strokeWidth={2.5} />
+        </g>
+      );
+    case "over_folder":
+      return (
+        <g>
+          <path d="M24 36 q5 -5 10 0 M38 36 q5 -5 10 0" fill="none" stroke={eye} strokeWidth={2} />
+          <path d="M30 49 q6 -5 12 0" fill="none" stroke={line} strokeWidth={2.5} />
+          <path d="M52 30 q5 6 0 11" fill="none" stroke={eye} strokeWidth={2} />
+        </g>
+      );
+    case "trapper":
+      return (
+        <g>
+          {/* half-shuttered visor; the bright trap opens on the raise */}
+          <rect x={24} y={32} width={24} height={8} rx={3} fill={eye} opacity={0.8} />
+          <path d="M26 31 h22 M31 47 h10" stroke={line} strokeWidth={2.5} strokeLinecap="round" />
         </g>
       );
     case "folder":

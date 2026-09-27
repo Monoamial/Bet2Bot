@@ -83,10 +83,18 @@ def test_run_session_payload():
     assert res["error"] is None
     assert res["start_stack"] == 20
     assert res["hands_survived"] == len(res["timeline"])
+    assert res["timeline"][-1] == res["final_stack"]
     if res["busted"]:
         assert res["final_stack"] == 0
-        assert res["timeline"][-1] <= 0
-    assert all(v >= -20 for v in res["timeline"])
+    assert all(v >= 0 for v in res["timeline"])
+    for replay in res["replays"]:
+        blinds = next(e for e in replay["events"] if e["type"] == "blinds")
+        award = next(e for e in replay["events"] if e["type"] == "award")
+        stack_before = res["start_stack"] if replay["hand"] == 0 else res["timeline"][replay["hand"] - 1]
+        player_blinds = (blinds["sb"] if blinds["sb_seat"] == 0 else
+                         blinds["bb"] if blinds["bb_seat"] == 0 else 0)
+        assert blinds["stacks"][0] == stack_before - player_blinds
+        assert award["stacks"][0] == res["timeline"][replay["hand"]]
 
 
 def test_human_new_multiway_and_modes():

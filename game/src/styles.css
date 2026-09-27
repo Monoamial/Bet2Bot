@@ -618,13 +618,28 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 .playing-card { display: inline-flex; border-radius: 8px; box-shadow: 0 0 0 2px var(--chip), 0 0 12px rgba(245,197,66,0.6); }
 .unused-card { display: inline-flex; opacity: 0.35; }
 .showdown-summary {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 16px;
   margin-top: 8px; padding: 8px 12px; border-radius: 8px;
   background: var(--panel-2); border: 1px solid var(--border);
 }
 .showdown-winner { color: var(--chip); font-weight: 700; }
 .showdown-loser { color: var(--muted); }
+.showdown-hands { display: flex; flex-wrap: wrap; gap: 8px 16px; width: 100%; }
+.showdown-pot-awards { display: grid; gap: 8px; width: 100%; padding-top: 8px; border-top: 1px solid var(--border); }
+.showdown-pot-heading { font-size: 13px; }
+.showdown-pot-layer {
+  display: grid; gap: 4px; padding: 8px 10px; border-radius: 7px;
+  border: 1px solid var(--border); overflow-wrap: anywhere;
+}
+.pot-eligible { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.pot-eligible > b, .pot-eligible strong { color: var(--text); }
+.pot-award-outcome { font-size: 12px; font-weight: 600; }
 .showdown-summary small { width: 100%; color: var(--muted); }
+@media (max-width: 700px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar .nav { flex-wrap: wrap; min-width: 0; }
+  .topbar .level-pill { display: none; }
+}
 
 /* Chip piles explain sized bets without replacing the exact numeric amounts. */
 .stack-chip { display: inline-flex; align-items: center; gap: 5px; }
@@ -727,3 +742,23 @@ table.stats tbody tr.you td { color: var(--accent); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .chip-flight, .chip-award { animation: none; display: none; }
 }
+.bridge-notice {
+  padding: 9px 12px; color: var(--accent); background: rgba(74,222,128,.1);
+  border-bottom: 1px solid var(--border); font-size: 13px;
+}
+
+/* A scrollable record lets learners revisit actions that flashed past while bots played. */
+.hand-log {
+  margin-top: 8px; padding: 7px 10px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.hand-log > b { display: block; color: var(--muted); font-size: 12px; margin-bottom: 3px; }
+.hand-log ol { margin: 0; padding: 0 0 0 24px; max-height: 110px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+.hand-log li:last-child { color: var(--text); font-weight: 600; }
+.opponent-tendency { flex: 1 0 100%; font-size: 12px; color: var(--muted); }
+@media (max-width: 650px) { .felt.multiway .table-felt-svg { min-width: 640px; } }
+.lesson-mastery {
+  padding: 6px 14px; color: var(--chip); background: rgba(245,197,66,.06);
+  border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600;
+}
+.new-best { margin-left: 8px; color: var(--accent); font-size: 12px; white-space: nowrap; }

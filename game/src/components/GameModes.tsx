@@ -1,9 +1,10 @@
 // The Play tab: a game-mode select. Classic four-action Limit stays the default,
-// introductory game; the other modes introduce variable betting (No-Limit), a
-// carried stack (Survival), and a full table (6-Max).
+// introductory game; the other modes introduce variable betting (No-Limit and
+// Pot-Limit), a carried stack (Survival), and a full table (6-Max).
 
 import { useState } from "react";
 import type { MutableRefObject } from "react";
+import type { BettingFormat } from "../engine-api/types";
 import type { EngineBridge } from "../pyodide/bridge";
 import { LivePlay } from "./LivePlay";
 
@@ -13,7 +14,7 @@ export interface GameMode {
   title: string;
   tag: string;              // one-phrase hook shown on the card
   desc: string;
-  betting: "limit" | "no_limit";
+  betting: BettingFormat;
   stack?: number;           // chips per seat per hand
   carry?: boolean;          // survival: the stack persists until you bust
   opponents?: string[];     // fixed table (multiway); omit = pick one opponent
@@ -39,6 +40,16 @@ export const MODES: GameMode[] = [
     betting: "no_limit",
     stack: 200,
     intro: "You have 200 chips (100 big blinds) each hand. Use the presets or the slider to size your bets.",
+  },
+  {
+    key: "pl",
+    icon: "♣️",
+    title: "Pot-Limit Heads-Up",
+    tag: "Pot-capped sizing",
+    desc: "Raise up to the pot after calling, or your whole stack if it is smaller. 100 big blinds each, refilled every hand.",
+    betting: "pot_limit",
+    stack: 200,
+    intro: "You have 200 chips (100 big blinds) each hand. Raises stop at the pot-sized raise after your call; use the slider or Max Pot preset.",
   },
   {
     key: "survival",
