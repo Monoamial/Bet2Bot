@@ -20,10 +20,10 @@ function post(msg: any) {
 const ENGINE_BASE = `${import.meta.env.BASE_URL}engine`;
 
 async function loadEngine() {
-  const manifest = await (await fetch(`${ENGINE_BASE}/manifest.json`)).json();
+  const manifest = await (await fetch(`${ENGINE_BASE}/manifest.json`, { cache: "no-store" })).json();
   const root = "/engine_root";
   for (const rel of manifest.files as string[]) {
-    const source = await (await fetch(`${ENGINE_BASE}/${rel}`)).text();
+    const source = await (await fetch(`${ENGINE_BASE}/${rel}?v=${manifest.version}`)).text();
     const full = `${root}/${rel}`;
     pyodide.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
     pyodide.FS.writeFile(full, source);
