@@ -22,13 +22,25 @@ street `default` is used. Supported `when` keys:
     position : "ip" | "oop"               # in position (acts last) or not
     oppType  : "loose" | "tight" | "unknown"   # from showdown history
     potOdds  : "cheap" | "expensive" | "na"    # price to call (cheap = ~2:1 or better)
+    oppRaisedThisHand : bool                     # a non-self seat raised earlier this hand
+
+`oppRaisedThisHand` uses only public current-hand betting actions before the decision;
+it does not use hidden cards or the persistent opponent profile.
 
 An optional `raiseSize` on a raise rule can be "small" (half-pot), "pot", or
 "overbet" (2x pot). In No-Limit it sizes the raise-to from the pot after calling;
 Limit ignores it and keeps the fixed raise size. Without it, the existing default
 pot-sized No-Limit raise is unchanged.
+
+An optional `mix` on a postflop rule is a bounded two-action choice, for example
+`{"action": "check", "frequency": 30}`. The alternate action is selected at that
+percentage; the rule's `action` is selected the rest of the time. A mixed raise may
+carry its own optional `raiseSize`. The bot uses a private decision RNG, separate
+from the deck RNG, so a match seed can reproduce choices without changing deals.
 """
 
+import math
+import random
 from typing import Dict, List, Optional
 
 from poker.action import CALL, CHECK, FOLD, RAISE, parse_action
@@ -58,6 +70,8 @@ RAISE_SIZE_LABELS = {
     "pot": "pot",
     "overbet": "2× pot",
 }
+
+MIXABLE_ACTIONS = {FOLD, CHECK, CALL, RAISE}
 
 
 def hand_class(cards) -> str:
@@ -102,11 +116,17 @@ class StrategyBot:
     LOOSE_THRESHOLD = 1.0
     MIN_SAMPLES = 3
 
-    def __init__(self, strategy: Optional[dict] = None):
+    def __init__(self, strategy: Optional[dict] = None, seed: Optional[int] = None):
         self.strategy = strategy or {}
         self._showdowns: Dict[int, List[int]] = {}
+        # This stream is intentionally independent from the engine's deck RNG.
+        self._decision_rng = random.Random(seed)
         # Human-readable reason for the most recent decision (surfaced in replays).
         self.last_decision: Optional[str] = None
+
+    def seed_decisions(self, seed: Optional[int]) -> None:
+        """Reset the private mixed-action stream (called by seeded match drivers)."""
+        self._decision_rng = random.Random(seed)
 
     # --- opponent profiling (feeds the oppType condition) ---
     def on_hand_end(self, summary: HandSummary) -> None:
@@ -134,6 +154,14 @@ class StrategyBot:
         price = state.to_call / (state.pot + state.to_call)
         return "cheap" if price <= 0.34 else "expensive"
 
+    @staticmethod
+    def _opp_raised_this_hand(state: GameState) -> bool:
+        """Whether any opponent has raised in public action history earlier this hand."""
+        return any(
+            seat != state.my_seat and action == RAISE
+            for seat, action in state.betting_history
+        )
+
     # --- decision making ---
     def act(self, state: GameState) -> str:
         if state.street == "preflop":
@@ -158,20 +186,43 @@ class StrategyBot:
             "position": "ip" if state.my_seat == state.button else "oop",
             "oppType": self._opp_type(state),
             "potOdds": self._pot_odds(state),
+            "oppRaisedThisHand": self._opp_raised_this_hand(state),
         }
         for rule in policy.get("rules", []):
             if self._matches(rule.get("when", {}), ctx):
                 action = rule.get("action", FOLD)
+                mix = self._valid_mix(action, rule.get("mix"))
+                chosen_action = action
+                chosen_frequency = None
+                mix_description = None
                 raise_size = rule.get("raiseSize")
-                decision = f"{TIER_LABEL.get(tier, tier)} → {action}"
+                if mix is not None:
+                    alternate, alternate_frequency = mix
+                    primary_frequency = 100.0 - alternate_frequency
+                    if self._decision_rng.random() * 100 < alternate_frequency:
+                        chosen_action = alternate
+                        chosen_frequency = alternate_frequency
+                        raise_size = rule.get("mix", {}).get("raiseSize")
+                    else:
+                        chosen_frequency = primary_frequency
+                    mix_description = (
+                        f"mix: {action} {self._format_frequency(primary_frequency)} / "
+                        f"{alternate} {self._format_frequency(alternate_frequency)}; "
+                        f"chose {chosen_action} "
+                        f"{self._format_frequency(chosen_frequency)}"
+                    )
+
+                decision = f"{TIER_LABEL.get(tier, tier)} → {chosen_action}"
                 size_label = (
                     RAISE_SIZE_LABELS.get(raise_size)
                     if isinstance(raise_size, str) else None
                 )
-                if action == RAISE and state.betting == "no_limit" and size_label:
-                    decision = f"{decision} ({size_label})"
+                if chosen_action == RAISE and state.betting == "no_limit" and size_label:
+                    decision += f" ({size_label})"
+                if mix_description is not None:
+                    decision += f" ({mix_description})"
                 self.last_decision = decision
-                action = self._sized_action(action, raise_size, state)
+                action = self._sized_action(chosen_action, raise_size, state)
                 return self._legalize(action, state)
         action = policy.get("default", CHECK)
         self.last_decision = f"{TIER_LABEL.get(tier, tier)} → {action}"
@@ -180,6 +231,32 @@ class StrategyBot:
     @staticmethod
     def _matches(when: dict, ctx: dict) -> bool:
         return all(ctx.get(k) == v for k, v in when.items())
+
+    @staticmethod
+    def _valid_mix(action: str, mix) -> Optional[tuple]:
+        """Return (alternate action, its percentage) for a valid two-action mix."""
+        if not isinstance(action, str) or action not in MIXABLE_ACTIONS:
+            return None
+        if not isinstance(mix, dict):
+            return None
+        alternate = mix.get("action")
+        frequency = mix.get("frequency")
+        if (not isinstance(alternate, str) or alternate not in MIXABLE_ACTIONS
+                or alternate == action
+                or isinstance(frequency, bool)
+                or not isinstance(frequency, (int, float))):
+            return None
+        try:
+            frequency = float(frequency)
+        except (OverflowError, ValueError):
+            return None
+        if not math.isfinite(frequency) or not 0 < frequency < 100:
+            return None
+        return alternate, frequency
+
+    @staticmethod
+    def _format_frequency(frequency: float) -> str:
+        return f"{frequency:g}%"
 
     @staticmethod
     def _sized_action(action: str, raise_size: Optional[str], state: GameState) -> str:

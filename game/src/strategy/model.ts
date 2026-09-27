@@ -14,14 +14,23 @@ export type Position = "ip" | "oop";
 export type OppType = "loose" | "tight";
 export type PotOdds = "cheap" | "expensive";
 
+/** Optional alternate action: selected at this percentage; the rule action is used otherwise. */
+export interface MixedAction {
+  action: Action;
+  frequency: number;
+  raiseSize?: RaiseSize;
+}
+
 // An override rule using unlocked conditions. Higher priority than the base table.
 export interface AdvancedRule {
   tier: Tier;
   position?: Position;
   oppType?: OppType;
   potOdds?: PotOdds;
+  oppRaisedThisHand?: boolean;
   action: Action;
   raiseSize?: RaiseSize;
+  mix?: MixedAction;
 }
 
 export interface StreetPolicyData {
@@ -32,6 +41,8 @@ export interface StreetPolicyData {
     facing: Action;
     firstRaiseSize?: RaiseSize;
     facingRaiseSize?: RaiseSize;
+    firstMix?: MixedAction;
+    facingMix?: MixedAction;
   }>;
   advanced?: AdvancedRule[];
 }
@@ -49,6 +60,8 @@ export interface Unlocks {
   position: boolean;
   potOdds: boolean;
   oppType: boolean;
+  history?: boolean; // expose the public current-hand action-history condition
+  mix?: boolean; // expose mixed-frequency action choices
 }
 
 export const RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
@@ -156,15 +169,31 @@ export function presetPreflop(kind: "tight" | "loose"): Record<string, Action> {
   return out;
 }
 
+function compileMix(action: Action, mix?: MixedAction): MixedAction | undefined {
+  if (!mix || !["fold", "check", "call", "raise"].includes(mix.action)
+    || mix.action === action || !Number.isFinite(mix.frequency)
+    || mix.frequency <= 0 || mix.frequency >= 100) return undefined;
+  const compiled: MixedAction = { action: mix.action, frequency: mix.frequency };
+  if (mix.action === "raise" && RAISE_SIZES.some((size) => size.value === mix.raiseSize)) {
+    compiled.raiseSize = mix.raiseSize;
+  }
+  return compiled;
+}
+
 function compileStreet(p: StreetPolicyData) {
   const rules: {
     when: Record<string, unknown>;
     action: Action;
     raiseSize?: RaiseSize;
+    mix?: MixedAction;
   }[] = [];
-  function addRule(when: Record<string, unknown>, action: Action, raiseSize?: RaiseSize) {
+  function addRule(
+    when: Record<string, unknown>, action: Action, raiseSize?: RaiseSize, mix?: MixedAction,
+  ) {
     const rule: (typeof rules)[number] = { when, action };
     if (action === "raise" && raiseSize) rule.raiseSize = raiseSize;
+    const compiledMix = compileMix(action, mix);
+    if (compiledMix) rule.mix = compiledMix;
     rules.push(rule);
   }
 
@@ -174,11 +203,18 @@ function compileStreet(p: StreetPolicyData) {
     if (r.position) when.position = r.position;
     if (r.oppType) when.oppType = r.oppType;
     if (r.potOdds) when.potOdds = r.potOdds;
-    addRule(when, r.action, r.raiseSize);
+    if (r.oppRaisedThisHand !== undefined) when.oppRaisedThisHand = r.oppRaisedThisHand;
+    addRule(when, r.action, r.raiseSize, r.mix);
   }
   for (const t of TIER_ORDER) {
-    addRule({ handTier: t, facingBet: true }, p.table[t].facing, p.table[t].facingRaiseSize);
-    addRule({ handTier: t, facingBet: false }, p.table[t].first, p.table[t].firstRaiseSize);
+    addRule(
+      { handTier: t, facingBet: true }, p.table[t].facing,
+      p.table[t].facingRaiseSize, p.table[t].facingMix,
+    );
+    addRule(
+      { handTier: t, facingBet: false }, p.table[t].first,
+      p.table[t].firstRaiseSize, p.table[t].firstMix,
+    );
   }
   return { rules, default: "check" as Action };
 }

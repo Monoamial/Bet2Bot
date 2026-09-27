@@ -1,5 +1,6 @@
 """Runs a match (or a fixed-stack session) of many hands between a fixed set of bots."""
 
+import hashlib
 import heapq
 import random
 from typing import Dict, List, Optional
@@ -7,6 +8,24 @@ from typing import Dict, List, Optional
 from poker.engine import BotFn, GameConfig, play_hand, resolve_hook
 from poker.state import HandSummary
 from poker.stats import Stats
+
+
+def _seed_decision_streams(seats, match_seed: Optional[int]) -> None:
+    """Seed opt-in bot decision RNGs independently from the deck RNG.
+
+    Seat-specific derived seeds keep two mixed StrategyBots independent in bot-v-bot
+    matches. Bots without this method (and all legacy policies) are untouched.
+    """
+    for seat, bot in enumerate(seats):
+        seed_decisions = getattr(bot, "seed_decisions", None)
+        if not callable(seed_decisions):
+            continue
+        if match_seed is None:
+            bot_seed = None
+        else:
+            material = f"bet2bot-strategy-v1:{match_seed}:{seat}".encode("utf-8")
+            bot_seed = int.from_bytes(hashlib.blake2b(material, digest_size=8).digest(), "big")
+        seed_decisions(bot_seed)
 
 
 class _TopK:
@@ -99,6 +118,7 @@ def run_match(
     names: List[str] = list(bots.keys())
     seats: List[BotFn] = [bots[nm] for nm in names]
     n = len(seats)
+    _seed_decision_streams(seats, seed)
 
     # Collect learning hooks for stateful bots (functions have none).
     hooks = [resolve_hook(b) for b in seats]
@@ -157,6 +177,7 @@ def run_session(
     names: List[str] = list(bots.keys())
     seats: List[BotFn] = [bots[nm] for nm in names]
     n = len(seats)
+    _seed_decision_streams(seats, seed)
     hooks = [resolve_hook(b) for b in seats]
 
     stats = Stats(names, big_blind=config.big_blind)

@@ -82,3 +82,58 @@ test("preflop raise size is optional and preserves the 169-class legacy grid", (
   assert.equal(compiled.preflop.AA, "raise");
   assert.equal(Object.keys(compiled.preflop).length, 170 - 1);
 });
+
+test("mixed base-table and advanced actions compile as optional weighted choices", () => {
+  const strategy = defaultStrategy();
+  strategy.flop.table.monster.first = "raise";
+  strategy.flop.table.monster.firstMix = { action: "check", frequency: 30 };
+  strategy.flop.table.monster.facing = "call";
+  strategy.flop.table.monster.facingMix = {
+    action: "raise", frequency: 20, raiseSize: "small",
+  };
+  strategy.flop.advanced = [
+    { tier: "pair", action: "raise", mix: { action: "call", frequency: 35 } },
+    { tier: "nothing", action: "check", mix: { action: "check", frequency: 40 } },
+    { tier: "twoPairPlus", action: "call", mix: { action: "raise", frequency: 100 } },
+  ];
+
+  const policy = compileStrategy(strategy);
+  const firstMix = findRule(
+    policy.flop,
+    (rule) => rule.when.handTier === "monster" && rule.when.facingBet === false,
+  );
+  const facingMix = findRule(
+    policy.flop,
+    (rule) => rule.when.handTier === "monster" && rule.when.facingBet === true,
+  );
+  const advancedMix = findRule(
+    policy.flop,
+    (rule) => rule.when.handTier === "pair",
+  );
+  const duplicateAction = findRule(
+    policy.flop,
+    (rule) => rule.when.handTier === "nothing",
+  );
+  const endpointFrequency = findRule(
+    policy.flop,
+    (rule) => rule.when.handTier === "twoPairPlus",
+  );
+
+  assert.deepEqual(firstMix, {
+    when: { handTier: "monster", facingBet: false },
+    action: "raise",
+    mix: { action: "check", frequency: 30 },
+  });
+  assert.deepEqual(facingMix, {
+    when: { handTier: "monster", facingBet: true },
+    action: "call",
+    mix: { action: "raise", frequency: 20, raiseSize: "small" },
+  });
+  assert.deepEqual(advancedMix, {
+    when: { handTier: "pair" },
+    action: "raise",
+    mix: { action: "call", frequency: 35 },
+  });
+  assert.equal(duplicateAction.mix, undefined, "the alternate must differ from the main action");
+  assert.equal(endpointFrequency.mix, undefined, "both choices must have a nonzero frequency");
+});

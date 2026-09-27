@@ -1,7 +1,8 @@
 import {
-  ACTION_STYLE, Action, AdvancedRule, RaiseSize, RAISE_SIZES, StreetPolicyData,
-  TIER_INFO, TIER_ORDER, Tier, Unlocks,
+  ACTION_STYLE, Action, AdvancedRule, MixedAction, RaiseSize, RAISE_SIZES,
+  StreetPolicyData, TIER_INFO, TIER_ORDER, Tier, Unlocks,
 } from "../strategy/model";
+import { ActionMixEditor } from "./ActionMixEditor";
 import { AdvancedRules } from "./AdvancedRules";
 
 const FIRST_ACTIONS: Action[] = ["check", "raise"];
@@ -60,14 +61,33 @@ export function StreetPolicyEditor({
   betting?: "limit" | "no_limit";
 }) {
   const showFacing = unlocks.facingBet;
-  const showAdvanced = unlocks.position || unlocks.oppType || unlocks.potOdds;
+  const showAdvanced = unlocks.position || unlocks.oppType || unlocks.potOdds || unlocks.history;
 
   function set(tier: Tier, key: "first" | "facing", action: Action) {
-    const table = { ...policy.table, [tier]: { ...policy.table[tier], [key]: action } };
-    // When the "facing a bet" column is locked, keep both in sync off the single choice.
+    const row = { ...policy.table[tier], [key]: action };
+    const mixKey = key === "first" ? "firstMix" : "facingMix";
+    if (row[mixKey]?.action === action) delete row[mixKey];
+    // When the "facing a bet" column is locked, keep both columns' choices in sync.
     if (!showFacing && key === "first") {
-      table[tier] = { ...table[tier], first: action, facing: action };
+      row.facing = action;
+      row.facingMix = row.firstMix;
     }
+    const table = { ...policy.table, [tier]: row };
+    onChange({ ...policy, table });
+  }
+
+  function setMix(tier: Tier, key: "first" | "facing", mix?: MixedAction) {
+    const row = { ...policy.table[tier] };
+    if (key === "first") {
+      if (mix && mix.action !== row.first) row.firstMix = mix;
+      else delete row.firstMix;
+      if (!showFacing) {
+        if (row.firstMix) row.facingMix = row.firstMix;
+        else delete row.facingMix;
+      }
+    } else if (mix && mix.action !== row.facing) row.facingMix = mix;
+    else delete row.facingMix;
+    const table = { ...policy.table, [tier]: row };
     onChange({ ...policy, table });
   }
 
@@ -111,6 +131,16 @@ export function StreetPolicyEditor({
                   value={policy.table[tier].first}
                   onChange={(a) => set(tier, "first", a)}
                 />
+                {unlocks.mix && (
+                  <ActionMixEditor
+                    action={policy.table[tier].first}
+                    mix={policy.table[tier].firstMix}
+                    options={FIRST_ACTIONS}
+                    label={`${TIER_INFO[tier].label} when no bet is out`}
+                    betting={betting}
+                    onChange={(mix) => setMix(tier, "first", mix)}
+                  />
+                )}
                 {betting === "no_limit" && policy.table[tier].first === "raise" && (
                   <RaiseSizeChoice
                     value={policy.table[tier].firstRaiseSize}
@@ -126,6 +156,16 @@ export function StreetPolicyEditor({
                     value={policy.table[tier].facing}
                     onChange={(a) => set(tier, "facing", a)}
                   />
+                  {unlocks.mix && (
+                    <ActionMixEditor
+                      action={policy.table[tier].facing}
+                      mix={policy.table[tier].facingMix}
+                      options={FACING_ACTIONS}
+                      label={`${TIER_INFO[tier].label} when facing a bet`}
+                      betting={betting}
+                      onChange={(mix) => setMix(tier, "facing", mix)}
+                    />
+                  )}
                   {betting === "no_limit" && policy.table[tier].facing === "raise" && (
                     <RaiseSizeChoice
                       value={policy.table[tier].facingRaiseSize}
