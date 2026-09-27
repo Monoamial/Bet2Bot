@@ -23,10 +23,9 @@ you apply it live. This is the current top priority.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| A2 | Individual content passes on the 5 original modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: deeper equity, hand reading, board texture, bankroll | P1 | L |
-| A6 | Per-lesson & per-module mastery (stars beyond completion) | P2 | S |
-| A7 | "Now teach your bot" bridges: a lesson drops the matching block into the builder (bridges currently jump to the Campaign; make them pre-fill rules) | P1 | M |
-| A11 | Grow Puzzles beyond the initial curated Academy scenario pool: new pot-odds/board-texture/hand-reading spots, calibrated difficulty, and spaced repetition of missed concepts (initial rating is an uncalibrated practice score) | P1 | L |
+| A2 | Individual content passes on the 5 original modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: deeper equity and bankroll (hand reading/board texture now have first modules) | P1 | L |
+| A7 | Extend the new value/discipline builder bridges to Position (needs a safe combined facing-bet + position rule) and No-Limit sizing once those campaigns exist; show a diff/confirmation when replacing a user's custom rule | P1 | M |
+| A11 | Grow Puzzles beyond the curated Academy scenario pool: randomized pot-odds/board-texture spots, calibrated difficulty, and spaced repetition of missed concepts (initial rating is an uncalibrated practice score) | P1 | L |
 | A12 | Expand introductory No-Limit sizing module: more size/price spots, randomized pot-odds numbers (validated mathematically), and a bridge that pre-fills an NL builder rule once NL campaign play exists | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
@@ -35,11 +34,12 @@ like improving. Each opponent is a creative, exploitable character.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| B1 | Roster of **creative bot archetypes** with distinct exploitable styles + personalities/avatars (Nit, Station, LAG, Maniac, Trapper, River-bluffer, Over-folder, Adaptive, Balanced) | P1 | L |
+| B1 | Continue creative roster beyond the three new free-play styles (River Bluffer, Over-folder, Trapper): Nit/LAG/Adaptive/Balanced, dialogue/personality descriptions and themed campaign bosses | P1 | L |
 | B2 | **Gated builder**: reveal streets/conditions/tools gradually per level; re-tune gates as they change | P1 | M |
 | B3 | More levels — each new tool/concept paired with a boss that punishes ignoring it | P1 | M |
-| B4 | Progression feel: unlock moments, difficulty ramp, "you're improving" feedback/rewards | P1 | M |
-| B5 | Creative boss ideas backlog (e.g. only-bluffs-rivers, over-folds-to-3bets, min-raise trapper) | P2 | S |
+| B4 | Progression feel beyond the new personal-best stars: unlock moments, difficulty ramp, "you're improving" feedback/rewards | P1 | M |
+| B5 | Creative boss ideas backlog (e.g. over-folds-to-3bets, min-raise trapper, check-raising paired boards) | P2 | S |
+| B6 | Playtest/calibrate every new archetype with multiple seeds and candidate counter-strategies before promoting it to a Campaign level; the initial River Bluffer/Trapper versions are deliberately tough and an unchanged Level 1 strategy loses badly | P1 | M |
 
 ## C — Results & analytics (multi-output)
 Goal: match results show more than one number.
@@ -49,13 +49,13 @@ Goal: match results show more than one number.
 | C4 | Leak breakdown: where chips came from / were lost (by street / hand tier) | P2 | M |
 
 ## D — Metrics rework
-Goal: evolve past bb/100 as *the* measure. (The engine primitive exists: `run_session`
-fixed-stack rolls power the Survival mode; what remains is campaign integration.)
+Goal: evolve past bb/100 as *the* measure. The Campaign now has named objective
+checks/stars, plus a fixed-stack 200-hand survival boss; more metrics and mastery remain.
 
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| D2 | Objective framework: data-driven named objectives (bankroll / EV / constraints / stars) that levels & drills compose from — survival objectives ("last 200 hands on one stack") via `run_session` | P1 | L |
-| D3 | Auto-calibrate objective thresholds from a playtest harness (robust under randomization) | P2 | M |
+| D3 | Extend `tools/calibrate_objectives.py` with authored candidate counter-policies per boss, larger held-out seed sets and automated level-threshold proposal/update; current diagnostic harness only recommends when baseline/counter percentiles separate | P2 | M |
+| D4 | Extend the shipped named-objective/star framework to Academy drills and EV once an EV metric exists; Campaign already persists personal-best objective stars, while Academy tracks best lesson mastery separately | P1 | M |
 
 ## E — Formats & table expansion
 Goal: grow beyond heads-up Limit. (Engine + game modes shipped: No-Limit with sized
@@ -64,15 +64,14 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 | ID | Task | Pri | Size |
 |----|------|-----|------|
 | E3 | Surface table config (blinds, stacks, players, format) in the game-mode UI (custom mode) | P2 | S |
-| E4 | **Pot-Limit** format (raise window capped at pot — the engine's default raise is already pot-sized) | P2 | S |
-| E5 | Builder support for sized raises in No-Limit (small/pot/overbet blocks) so bots can play NL modes deliberately — pairs with A10 sizing lessons | P1 | M |
 | E6 | Multiway position conditions in the builder (early/middle/late, not just IP/OOP) | P2 | M |
-| E8 | **Game modes reach Campaign & Academy**: levels/lessons that run in NL, Survival, or 6-max once the supporting pieces exist (E5 builder sizing, D2 survival objectives) — e.g. a survival boss level, a 6-max positional module | P1 | L |
+| E10 | Optional per-hand-class No-Limit preflop raise sizes (current selector sets one size for all raised classes) | P2 | M |
+| E11 | Update the versioned Godot integration API's format validation/descriptor to include Pot-Limit, after the Godot package is refreshed; the web engine/Play mode already support it | P2 | S |
+| E8 | Expand the new No-Limit sizing Academy module and Survival Campaign boss into further formats: 6-max positional Academy play, multiway campaign puzzles, and more NL bosses; calibrate objectives before gating | P1 | L |
 
 ## F — Interactive play enhancements
 | ID | Task | Pri | Size |
 |----|------|-----|------|
-| F6 | At showdown, explain ties/kickers and side-pot eligibility when hand categories match (current display highlights five playing cards and names categories) | P1 | M |
 | F2 | Post-hand coaching/diagnosis ("you paid off X% of rivers with one pair") | P1 | M |
 | F3 | "Play vs any bot" sandbox polish (choose format/stack/opponent) | P2 | S |
 
@@ -87,18 +86,18 @@ raises, stacks/all-ins/side pots, multiway, Survival; Classic Limit stays the de
 | ID | Task | Pri | Size |
 |----|------|-----|------|
 | H1 | Extract a shared table component (PokerTable replay ↔ LivePlay dupe: Seat/reducer/felt) | P1 | M |
-| H3 | Self-host Pyodide (drop the CDN dependency; CSP-friendly) | P2 | S |
 | H4 | Lint/format config (eslint + prettier) for the web app | P2 | S |
-| H5 | Keep objective gates meaningful under full randomization (ties to D2/D3) | P1 | S |
+| H5 | Keep objective gates meaningful under full randomization (ties to D3/D4) | P1 | S |
+| H6 | Make the current headless-browser smoke paths (manual modes, Academy modules, new survival boss) reproducible in CI without coupling the Python unit tests to a browser download | P2 | M |
 
 ---
 
 ## Board
-- **Now:** A2 individual module content passes · A11 richer puzzles + calibrated
-  difficulty · A12 deeper sizing practice · F6 hand-order/tie explanations.
-- **Next:** E5 NL builder blocks (in progress) · B1 creative roster · B2 gated builder ·
-  D2 objective framework (survival objectives) · F2 coaching · H1 shared table component ·
-  A7 builder bridges.
-- **Later:** E8 game modes in Campaign/Academy (after E5/D2) · E3 custom tables ·
-  E4 Pot-Limit · E6 multiway builder conditions · G mixed frequencies / draws / board
+- **Now:** A2 content passes on original modules · A11 richer puzzles/spaced practice ·
+  A12 deeper sizing practice · B2 tune builder gates after the new Survival boss.
+- **Next:** B1 creative roster expansion · B3 new calibrated levels · B4 progression
+  rewards/best stars · D4 EV/drill objectives · F2 coaching · H1 shared table component ·
+  A7 advanced builder bridges · E8 further Academy/Campaign formats.
+- **Later:** E3 custom tables · E6 multiway builder
+  conditions · E10 per-class preflop sizing · E11 Godot API format parity · G mixed frequencies / draws / board
   texture · PVP ladder.
