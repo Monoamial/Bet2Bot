@@ -95,7 +95,8 @@ quiz/hand/drill lessons earn 1–3 mastery stars (best per lesson persists in
 lessons use curated rank-changing variants (`academy/randomize.ts`); pairs that teach
 position share the same deal, and one attempt keeps its cards until Retry. The
 standalone Puzzles tab uses the same safe templates, with a local practice rating and
-streak (`b2b.puzzles.v1`). This is a practice score, **not** calibrated Elo. Play
+streak (`b2b.puzzles.v1`); missed templates are queued for retry after a few
+other puzzles. This is a practice score, **not** calibrated Elo. Play
 lessons can pin the dealer button (`InteractiveMatch(fixed_button=...)`) for
 in/out-of-position drills. A new **Read the opponent** module practices range inference
 against the River Bluffer, Over-folder, and Trapper; its spots have tested,

@@ -25,7 +25,7 @@ you apply it live. This is the current top priority.
 |----|------|-----|------|
 | A2 | Individual content passes on the 5 original modules — they're a decent skeleton but each needs dedicated work (depth, better spots, visuals); plus new topics: deeper equity and bankroll (hand reading/board texture now have first modules) | P1 | L |
 | A7 | Extend the new value/discipline builder bridges to Position (needs a safe combined facing-bet + position rule) and No-Limit sizing once those campaigns exist; show a diff/confirmation when replacing a user's custom rule | P1 | M |
-| A11 | Grow Puzzles beyond the curated Academy scenario pool: randomized pot-odds/board-texture spots, calibrated difficulty, and spaced repetition of missed concepts (initial rating is an uncalibrated practice score) | P1 | L |
+| A11 | Grow Puzzles beyond the curated Academy scenario pool: randomized pot-odds/board-texture spots, calibrated difficulty and more nuanced spaced repetition (missed templates now return after a few other puzzles; rating is still an uncalibrated practice score) | P1 | L |
 | A12 | Expand introductory No-Limit sizing module: more size/price spots, randomized pot-odds numbers (validated mathematically), and a bridge that pre-fills an NL builder rule once NL campaign play exists | P1 | M |
 
 ## B — Campaign: creative bots & gated bot-building
